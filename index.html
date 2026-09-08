@@ -680,17 +680,23 @@ let TUT={step:0};
 const TS=[
   {title:"Move a tile",text:"Tap the <b>amber tile</b>, then tap a <b>green dot</b> to move it.",
     setup:()=>({b:new Map([[K(2,2),{o:0,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="move"},
-  {title:"Build a unit",text:"Tap one tile, then tap the adjacent one. Choose <b>Runner</b> or <b>Fighter</b> — it's permanent!",
+  {title:"Build a unit",text:"Tap one tile, then tap the adjacent one. Choose <b>Runner</b> or <b>Fighter</b> — it's permanent, and can never be un-stacked!",
     setup:()=>({b:new Map([[K(1,2),{o:0,n:1,t:"S"}],[K(2,2),{o:0,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="combine"},
-  {title:"Attack!",text:"Your <b>Fighter-2</b> can destroy the enemy single. Tap your fighter, then tap the <b>red enemy</b>.",
+  {title:"Fighters attack",text:"Your <b>Fighter-2</b> can destroy any enemy of lower strength. Tap your fighter, then tap the <b>red enemy</b>.",
     setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"F"}],[K(2,1),{o:1,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
+  {title:"Singles attack singles",text:"A lone tile can destroy an adjacent <b>enemy single</b> — but nothing bigger. Tap yours, then tap the red enemy.",
+    setup:()=>({b:new Map([[K(2,2),{o:0,n:1,t:"S"}],[K(2,1),{o:1,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
+  {title:"Runners attack runners",text:"A runner can destroy an enemy <b>runner of equal or lower stack</b> — but nothing else. Tap yours, then tap the red enemy.",
+    setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"R"}],[K(2,1),{o:1,n:2,t:"R"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
+  {title:"Kamikaze!",text:"A fighter can <b>detonate</b>, destroying itself and everything in the 6 surrounding hexes — enemies <i>and</i> your own tiles. Tap your fighter, then hit 💥 Detonate.",
+    setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"F"}],[K(2,1),{o:1,n:1,t:"S"}],[K(1,2),{o:1,n:1,t:"S"}],[K(3,2),{o:0,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="kamikaze"},
   {title:"Score!",text:"Your <b>Runner-2</b> is near the edge. Select it and tap <b>⬆ Bank</b> to score 2 points!",
     setup:()=>({b:new Map([[K(4,1),{o:0,n:2,t:"R"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="score"},
 ];
 function startTut(){document.getElementById("setupScreen").style.display="none";document.getElementById("gameScreen").style.display="none";
   document.getElementById("tutorialScreen").style.display="block";TUT.step=0;renderTutStep();}
 function renderTutStep(){const scr=document.getElementById("tutorialScreen");
-  if(TUT.step>=TS.length){scr.innerHTML='<div class="tut-card"><h2>You\'re ready!</h2><p class="tut-text">Start a game and discover runners, fighters, kamikaze, and the art of the breakthrough.</p><div class="tut-btns"><button class="tut-btn primary" id="tutDone">Start playing</button></div></div>';
+  if(TUT.step>=TS.length){scr.innerHTML='<div class="tut-card"><h2>You\'re ready!</h2><p class="tut-text">First to <b>6 points</b> wins. Otherwise: most points wins, ties go to whoever has more tiles left, and a full tie goes to the second player. Start a game and discover the art of the breakthrough.</p><div class="tut-btns"><button class="tut-btn primary" id="tutDone">Start playing</button></div></div>';
     document.getElementById("tutDone").onclick=()=>{scr.style.display="none";showSetup();};return;}
   const step=TS[TUT.step];
   scr.innerHTML=`<div class="tut-card"><div class="tut-step">Step ${TUT.step+1} of ${TS.length}</div><h2>${step.title}</h2><p class="tut-text">${step.text}</p><svg id="tutBoardSvg"></svg><div id="tutSelInfo" style="font-family:var(--mono);font-size:11px;min-height:24px;margin-bottom:6px"></div><div id="tutActionBar" class="actionbar"></div><div class="tut-btns"><button class="tut-btn" id="tutSkip">Skip tutorial</button></div></div>`;
@@ -730,7 +736,9 @@ function renderTutBoard(){const svg=document.getElementById("tutBoardSvg");if(!s
     const acts=legal(s).filter(a=>a.from===G.selected);
     const sc=acts.find(a=>a.type==="score");
     if(sc&&ab){const b=document.createElement("button");b.className="abtn score-btn";b.textContent=`⬆ Bank ${u.n} points`;b.onclick=()=>tutDo(sc);ab.appendChild(b);}
-    for(const a of acts.filter(a=>a.type==="attack")){if(!ab)continue;const b=document.createElement("button");b.className="abtn atk-btn";b.textContent=`⚔ Attack at ${a.to}`;b.onclick=()=>tutDo(a);ab.appendChild(b);}}}
+    for(const a of acts.filter(a=>a.type==="attack")){if(!ab)continue;const b=document.createElement("button");b.className="abtn atk-btn";b.textContent=`⚔ Attack at ${a.to}`;b.onclick=()=>tutDo(a);ab.appendChild(b);}
+    const kam=acts.find(a=>a.type==="kamikaze");
+    if(kam&&ab){const b=document.createElement("button");b.className="abtn kamikaze";b.textContent="💥 Detonate";b.onclick=()=>tutDo(kam);ab.appendChild(b);}}}
 function tutClk(c,r){const s=G.state,k=K(c,r),u=s.b.get(k);
   if(G.selected===k){G.selected=null;renderTutBoard();return;}
   if(G.selected){const acts=legal(s).filter(a=>a.from===G.selected);
