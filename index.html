@@ -65,7 +65,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--disp);padding:0;
 /* game */
 #gameScreen{display:none;grid-template-columns:1fr 260px;gap:12px;align-items:start;padding-bottom:20px;}
 @media(max-width:860px){#gameScreen{grid-template-columns:1fr;padding-bottom:72px;}}
-.boardcard{background:var(--panel);border-radius:var(--radius);padding:10px;box-shadow:var(--shadow);position:relative;}
+.boardcard{background:var(--panel);border-radius:var(--radius);padding:10px 10px 30px;box-shadow:var(--shadow);position:relative;overflow:visible;}
 @media(max-width:860px){.boardcard{border-radius:0;margin:0 -14px;padding:8px 4px;}}
 #boardSvg{display:block;width:100%;height:auto;user-select:none;}
 .hextile{cursor:pointer;transition:filter .1s;}.hextile:hover{filter:brightness(1.08);}
@@ -207,7 +207,7 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 <div class="optgroup" id="aiSideGroup" style="display:none"><div class="lbl">You play as</div><div class="optrow" id="aiSideRow">
 <button class="optbtn active" data-side="A">Player A</button><button class="optbtn" data-side="B">Player B</button></div></div>
 <div class="optgroup" id="diffGroup" style="display:none"><div class="lbl">Difficulty</div><div class="optrow" id="diffRow">
-<button class="optbtn" data-diff="novice">Novice</button><button class="optbtn active" data-diff="normal">Normal</button><button class="optbtn" data-diff="hard">Hard</button><button class="optbtn" data-diff="vhard">Very Hard</button></div></div>
+<button class="optbtn" data-diff="easy">Easy</button><button class="optbtn active" data-diff="medium">Medium</button><button class="optbtn" data-diff="hard">Hard</button></div></div>
 <div class="optgroup"><div class="lbl">First move</div><div class="optrow" id="firstRow">
 <button class="optbtn active" data-first="coin">Coin flip</button><button class="optbtn" data-first="A">Player A</button><button class="optbtn" data-first="B">Player B</button></div></div>
 <div class="setup-btns"><button id="tutorialBtn">Learn to play</button><button id="startBtn">Start game</button></div>
@@ -250,8 +250,9 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 <input type="range" class="replay-slider" id="rpSlider" min="0" max="0" value="0">
 <span class="replay-ply" id="rpPly">0 / 0</span>
 </div>
-<div id="rpAction" style="font-family:var(--mono);font-size:11px;color:var(--ink);margin-top:6px;min-height:18px;"></div>
-<button class="abtn" id="rpExit" style="margin-top:8px;text-align:center;">✕ Exit replay</button>
+<div id="rpLog" style="font-family:var(--mono);font-size:11px;color:var(--ink);margin-top:8px;max-height:160px;overflow-y:auto;border:1px solid var(--cellstroke);border-radius:6px;padding:6px 8px;background:var(--cell);"></div>
+<button class="abtn" id="rpExport" style="margin-top:8px;text-align:center;">⬇ Export game</button>
+<button class="abtn" id="rpExit" style="margin-top:6px;text-align:center;">✕ Exit replay</button>
 </div>
 </div></div>
 </div>
@@ -264,7 +265,7 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 </div>
 
 <div id="typeChooser"><div class="tc-label">Build as…</div><div class="tc-row"><button id="tcRunner">Runner</button><button id="tcFighter">Fighter</button></div></div>
-<div class="modal-backdrop" id="endModal"><div class="modal"><h2 id="endTitle"></h2><p id="endBody"></p><div class="modalbtns"><button class="primary" id="endNewGame">New game</button></div></div></div>
+<div class="modal-backdrop" id="endModal"><div class="modal"><h2 id="endTitle"></h2><p id="endBody"></p><div class="modalbtns"><button class="primary" id="endNewGame">New game</button><button class="sec" id="endReview">▶ Review game</button></div></div></div>
 <div class="modal-backdrop" id="rulesModal"><div class="modal">
 <h2>Currere — Rules</h2>
 <div class="rules-body">
@@ -275,7 +276,7 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 <tr><td><b>Fighter</b> (2–3)</td><td>1</td><td>stack #</td><td>lower-strength enemies</td></tr></table>
 <p>Type is <b>permanent</b>. Tiles can <b>never be un-stacked</b>.</p>
 <h3>Actions (one per turn — never pass)</h3>
-<p><b>Move</b> through empty hexes. <b>Combine</b> adjacent friendlies (max 3). <b>Attack</b> adjacent enemy. <b>Kamikaze</b> (fighter): destroy it + all 6 neighbors. Attacker stays put.</p>
+<p><b>Move</b> through empty hexes. <b>Combine</b> adjacent friendlies (max 3). <b>Attack</b> adjacent enemy. <b>Detonate</b> (fighter): destroy it + all 6 neighbors. Attacker stays put.</p>
 </div><div class="modalbtns" style="margin-top:12px"><button class="primary" onclick="document.getElementById('rulesModal').classList.remove('show')">Close</button></div></div></div>
 
 <div class="modal-backdrop" id="settingsModal"><div class="modal" style="text-align:left">
@@ -292,8 +293,14 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 const ROWS=13,VPT=6,PCAP=500;
 function colsR(r){return(ROWS-r)%2===1?9:8;}
 function onB(c,r){return r>=0&&r<ROWS&&c>=0&&c<colsR(r);}
-function K(c,r){return c+","+r;}function P(k){return k.split(",").map(Number);}
-function nb(c,r){return(r%2===0?[[0,-1],[-1,-1],[-1,0],[1,0],[-1,1],[0,1]]:[[1,-1],[0,-1],[-1,0],[1,0],[0,1],[1,1]]).map(([a,b])=>[c+a,r+b]);}
+/* Coordinate helpers are cached: the AI calls them millions of times. Returned arrays are shared — never mutate them. */
+const _KC=[],_NBC=[],_PC=new Map();
+function K(c,r){const i=(c+3)*20+(r+3);if(i>=0&&c>-3&&c<17&&r>-3&&r<17){const v=_KC[i];if(v!==undefined)return v;return _KC[i]=c+","+r;}return c+","+r;}
+function P(k){let v=_PC.get(k);if(v===undefined){v=k.split(",").map(Number);if(_PC.size<5000)_PC.set(k,v);else return v;}return v;}
+function nb(c,r){const i=(c+3)*20+(r+3);if(c>-3&&c<17&&r>-3&&r<17){const v=_NBC[i];if(v!==undefined)return v;return _NBC[i]=_nb(c,r);}return _nb(c,r);}
+const _NBB=[];
+function nbb(c,r){const i=(c+3)*20+(r+3);let v=_NBB[i];if(v===undefined)v=_NBB[i]=nb(c,r).filter(([a,b])=>onB(a,b));return v;}
+function _nb(c,r){return(r%2===0?[[0,-1],[-1,-1],[-1,0],[1,0],[-1,1],[0,1]]:[[1,-1],[0,-1],[-1,0],[1,0],[0,1],[1,1]]).map(([a,b])=>[c+a,r+b]);}
 function str(u){return u.t==="R"?0:u.t==="F"?u.n:1;}
 function spd(u){return u.t==="R"?u.n:1;}
 function newGS(){const b=new Map();[8,10].forEach(r=>{for(let c=0;c<colsR(r);c++)b.set(K(c,r),{o:0,n:1,t:"S"});});[2,4].forEach(r=>{for(let c=0;c<colsR(r);c++)b.set(K(c,r),{o:1,n:1,t:"S"});});return{b,s:[0,0],turn:0,ply:0,fp:0};}
@@ -308,14 +315,34 @@ function legal(st){const me=st.turn,acts=[];
         const nk=K(nc,nr);if(st.b.has(nk)||seen.has(nk))continue;seen.add(nk);ds.add(nk);fr.push([nc,nr,d+1]);}}
     for(const dk of ds)acts.push({type:"move",from:k,to:dk});
     if(canSc)acts.push({type:"score",from:k});
-    for(const[nc,nr]of nb(c,r)){if(!onB(nc,nr))continue;const nk=K(nc,nr),adj=st.b.get(nk);
+    for(const[nc,nr]of nbb(c,r)){const nk=K(nc,nr),adj=st.b.get(nk);
       if(adj&&adj.o===me&&u.n+adj.n<=3){
         if(adj.t==="R"||adj.t==="F")acts.push({type:"combine",from:k,to:nk,ch:adj.t});
         else if(u.t==="R"||u.t==="F")acts.push({type:"combine",from:k,to:nk,ch:u.t});
         else{acts.push({type:"combine",from:k,to:nk,ch:"R"});acts.push({type:"combine",from:k,to:nk,ch:"F"});}}}
-    if(u.t==="S"){for(const[nc,nr]of nb(c,r))if(onB(nc,nr)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&en.t==="S")acts.push({type:"attack",from:k,to:K(nc,nr)});}}
-    if(u.t==="R"&&u.n>=2){for(const[nc,nr]of nb(c,r))if(onB(nc,nr)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&en.t==="R"&&en.n<=u.n)acts.push({type:"attack",from:k,to:K(nc,nr)});}}
-    if(u.t==="F"){const sN=u.n;for(const[nc,nr]of nb(c,r))if(onB(nc,nr)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&str(en)<sN)acts.push({type:"attack",from:k,to:K(nc,nr)});}acts.push({type:"kamikaze",from:k});}}return acts;}
+    if(u.t==="S"){for(const[nc,nr]of nbb(c,r)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&en.t==="S")acts.push({type:"attack",from:k,to:K(nc,nr)});}}
+    if(u.t==="R"&&u.n>=2){for(const[nc,nr]of nbb(c,r)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&en.t==="R"&&en.n<=u.n)acts.push({type:"attack",from:k,to:K(nc,nr)});}}
+    if(u.t==="F"){const sN=u.n;for(const[nc,nr]of nbb(c,r)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&str(en)<sN)acts.push({type:"attack",from:k,to:K(nc,nr)});}let _ke=0;for(const[_nc,_nr]of nb(c,r)){if(onB(_nc,_nr)){const _en=st.b.get(K(_nc,_nr));if(_en&&_en.o!==me)_ke+=_en.n;}}if(_ke>0)acts.push({type:"kamikaze",from:k});}}return acts;}
+/* Tactical moves only (bank, attack, detonate) — used by quiescence; same results as legal() filtered */
+function legalTact(st,run){const me=st.turn,acts=[];
+  for(const[k,u]of st.b){if(u.o!==me)continue;const[c,r]=P(k);const sp=spd(u);
+    const dist=me===0?r:ROWS-1-r;
+    /* Optionally: runner moves into banking range (the runner's version of a "check") */
+    if(run&&u.t==="R"&&dist>sp&&dist<=2*sp){const fr=[[c,r,0]],seen=new Set([k]);
+      while(fr.length){const[cc,cr,d]=fr.pop();if(d>=sp)continue;
+        for(const[nc,nr]of nbb(cc,cr)){const nk=K(nc,nr);if(st.b.has(nk)||seen.has(nk))continue;seen.add(nk);
+          if((me===0?nr:ROWS-1-nr)<=sp)acts.push({type:"move",from:k,to:nk});fr.push([nc,nr,d+1]);}}}
+    if(dist<=sp){let canSc=false;const fr=[[c,r,0]],seen=new Set([k]);
+      while(fr.length&&!canSc){const[cc,cr,d]=fr.pop();
+        if(me===0?cr===0:cr===ROWS-1){canSc=true;break;}
+        if(d>=sp)continue;
+        for(const[nc,nr]of nbb(cc,cr)){const nk=K(nc,nr);if(st.b.has(nk)||seen.has(nk))continue;seen.add(nk);fr.push([nc,nr,d+1]);}}
+      if(canSc)acts.push({type:"score",from:k});}
+    if(u.t==="S"){for(const[nc,nr]of nbb(c,r)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&en.t==="S")acts.push({type:"attack",from:k,to:K(nc,nr)});}}
+    else if(u.t==="R"){if(u.n>=2)for(const[nc,nr]of nbb(c,r)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me&&en.t==="R"&&en.n<=u.n)acts.push({type:"attack",from:k,to:K(nc,nr)});}}
+    else{let ke=0;for(const[nc,nr]of nbb(c,r)){const en=st.b.get(K(nc,nr));if(en&&en.o!==me){ke+=en.n;if(str(en)<u.n)acts.push({type:"attack",from:k,to:K(nc,nr)});}}
+      if(ke>0)acts.push({type:"kamikaze",from:k});}}
+  return acts;}
 function applyA(st,a){const s={b:new Map(st.b),s:st.s.slice(),turn:st.turn,ply:st.ply,fp:st.fp};
   if(a.type==="move"){const u=s.b.get(a.from);s.b.delete(a.from);s.b.set(a.to,u);}
   else if(a.type==="score"){const u=s.b.get(a.from);s.b.delete(a.from);s.s[u.o]+=u.n;}
@@ -331,107 +358,385 @@ function isEnd(s){if(winBySc(s)!==null)return true;if(s.ply>=PCAP)return true;
     if(legal(s2).length===0)return true;/* neither can act — truly over */
     return false;/* opponent can still play — not over yet */}return false;}
 
-/* === SMART EVAL: path-aware, wall-breaking, defensive === */
-function computeReachSet(s,owner){
-  /* One flood-fill per owner: all EMPTY cells connected (via chains of empty cells) to that owner's scoring edge. */
-  const reach=new Set(),fr=[];
-  for(let r=0;r<ROWS;r++){for(let c=0;c<colsR(r);c++){
-    const k=K(c,r);if(s.b.has(k))continue;
-    for(const[nc,nr]of nb(c,r)){if((owner===0&&nr<0)||(owner===1&&nr>ROWS-1)){reach.add(k);fr.push([c,r]);break;}}}}
-  while(fr.length){const[c,r]=fr.pop();
-    for(const[nc,nr]of nb(c,r)){if(!onB(nc,nr))continue;const nk=K(nc,nr);
-      if(s.b.has(nk)||reach.has(nk))continue;reach.add(nk);fr.push([nc,nr]);}}
-  return reach;}
+/* === EVALUATION === */
+function adjToEdge(c,r,o){for(const[nc,nr]of nb(c,r)){if((o===0&&nr<0)||(o===1&&nr>ROWS-1))return true;}return false;}
+function computeReachSet(s,o){const reach=new Set(),fr=[];
+  for(let r=0;r<ROWS;r++){for(let c=0;c<colsR(r);c++){const k=K(c,r);if(s.b.has(k))continue;
+    for(const[nc,nr]of nb(c,r)){if((o===0&&nr<0)||(o===1&&nr>ROWS-1)){reach.add(k);fr.push([c,r]);break;}}}}
+  while(fr.length){const[c,r]=fr.pop();for(const[nc,nr]of nbb(c,r)){const nk=K(nc,nr);
+    if(s.b.has(nk)||reach.has(nk))continue;reach.add(nk);fr.push([nc,nr]);}}return reach;}
+function hasReachFast(reach,c,r,o){for(const[nc,nr]of nb(c,r)){
+  if((o===0&&nr<0)||(o===1&&nr>ROWS-1))return true;if(reach.has(K(nc,nr)))return true;}return false;}
 
-function hasReachFast(reach,c,r,owner){
-  for(const[nc,nr]of nb(c,r)){
-    if((owner===0&&nr<0)||(owner===1&&nr>ROWS-1))return true;
-    if(reach.has(K(nc,nr)))return true;}
-  return false;}
-
-function laneCount(s,reach,owner){
-  let lanes=0;const front=owner===0?4:8;
-  for(let c=0;c<9;c++){
-    for(let r=Math.max(0,front-2);r<=Math.min(ROWS-1,front+2);r++){
-      if(c<colsR(r)){const k=K(c,r);if(!s.b.has(k)&&reach.has(k)){lanes++;break;}}}}
-  return lanes;}
-
+/* Root-only eval with flood fills */
 function evalSmart(s){
   const w=winBySc(s);if(w===0)return 1e6-s.ply;if(w===1)return-1e6+s.ply;
-  let e=150*(s.s[0]-s.s[1]);
-  const reachA=computeReachSet(s,0),reachB=computeReachSet(s,1);
-  const lanesA=laneCount(s,reachA,0),lanesB=laneCount(s,reachB,1);
-  e+=25*(lanesA-lanesB);
-  if(lanesA===0)e-=60;if(lanesB===0)e+=60;
-
-  for(const[k,u]of s.b){
-    const[c,r]=P(k),sign=u.o===0?1:-1,prog=u.o===0?(ROWS-1-r):r;
-    if(u.t==="R"){
-      const hasPath=hasReachFast(u.o===0?reachA:reachB,c,r,u.o);
-      if(hasPath){e+=sign*6*u.n*prog;e+=sign*10*u.n;}else{e+=sign*1*u.n;}
-    }
-    else if(u.t==="F"){
-      e+=sign*5*u.n;let threatCount=0;
-      for(const[nc,nr]of nb(c,r)){if(!onB(nc,nr))continue;
-        const t=s.b.get(K(nc,nr));
-        if(t&&t.o!==u.o&&str(t)<u.n){threatCount++;e+=sign*15*t.n;}}
-      if(threatCount>0)e+=sign*20;
-      e+=sign*2*prog;
-      let ownNear=0,enNear=0;
-      for(const[nc,nr]of nb(c,r)){if(!onB(nc,nr))continue;const t=s.b.get(K(nc,nr));
-        if(t){if(t.o===u.o)ownNear+=t.n;else enNear+=t.n;}}
-      if(enNear>ownNear+u.n)e+=sign*8;
-    }
-    else{
-      const ownFront=u.o===0?8:4,distFromFront=Math.abs(r-ownFront);
-      if(distFromFront<=2){
-        let blocking=false;
-        for(const[nc,nr]of nb(c,r)){if(!onB(nc,nr))continue;
-          const t=s.b.get(K(nc,nr));if(t&&t.o!==u.o)blocking=true;}
-        e+=sign*(blocking?8:4);
-      }else{e+=sign*2*prog;}
-      e+=sign*3;
-    }
-  }
+  let e=300*(s.s[0]-s.s[1]);
+  const rA=computeReachSet(s,0),rB=computeReachSet(s,1);
+  let lA=0,lB=0;
+  for(let c=0;c<9;c++){for(let r=2;r<=6;r++){if(c<colsR(r)&&!s.b.has(K(c,r))&&rA.has(K(c,r))){lA++;break;}}
+    for(let r=6;r<=10;r++){if(c<colsR(r)&&!s.b.has(K(c,r))&&rB.has(K(c,r))){lB++;break;}}}
+  e+=50*(lA-lB);if(lA===0)e-=200;if(lB===0)e+=200;
+  let thA=0,thB=0,srA=0,srB=0,sfA=0,sfB=0;
+  for(const[k,u]of s.b){const[c,r]=P(k),sign=u.o===0?1:-1,prog=u.o===0?(ROWS-1-r):r;
+    const mr=u.o===0?rA:rB,atE=adjToEdge(c,r,u.o);
+    let uv=0;
+    if(u.t==="R"){if(u.o===0)srA++;else srB++;uv=18*u.n;const hp=hasReachFast(mr,c,r,u.o);
+      if(atE&&hp){uv+=150*u.n;if(u.o===0)thA+=u.n;else thB+=u.n;}
+      else if(hp){uv+=(10*u.n*prog+20*u.n)+Math.max(0,60-Math.ceil((u.o===0?r:ROWS-1-r)/u.n)*12)*u.n;}
+      else uv=2*u.n;
+    }else if(u.t==="F"){if(u.o===0)sfA++;else sfB++;uv=30*u.n+3*prog;let tc=0;
+      for(const[nc,nr]of nbb(c,r)){const t=s.b.get(K(nc,nr));
+        if(t&&t.o!==u.o&&str(t)<u.n){tc++;uv+=30*t.n;}}
+      if(tc>0)uv+=45;
+    }else{if(atE){uv=90;if(u.o===0)thA++;else thB++;}
+      else{uv=3*prog+3;}}
+    let threatened=false;
+    for(const[nc,nr]of nbb(c,r)){
+      const en=s.b.get(K(nc,nr));if(!en||en.o===u.o)continue;
+      if(en.t==="S"&&u.t==="S"){threatened=true;break;}
+      if(en.t==="R"&&u.t==="R"&&en.n>=u.n){threatened=true;break;}
+      if(en.t==="F"&&str(u)<en.n){threatened=true;break;}}
+    if(threatened){const oppT=(s.turn!==u.o);uv=oppT?Math.floor(uv*0.5):Math.floor(uv*0.85);}
+    e+=sign*uv;}
+  e+=70*(thA-thB);if(thA>=2)e+=120;if(thB>=2)e-=120;
+  /* Composition: self-balance + counter */
+  e+=45*Math.min(srA,sfA)-45*Math.min(srB,sfB);
+  if(srA>=2&&sfA===0)e-=80*(srA-1);if(srB>=2&&sfB===0)e+=80*(srB-1);
+  /* Counter: our fighters gain value when opponent has runners, and vice versa */
+  if(srB>=2)e+=30*sfA;if(srA>=2)e-=30*sfB;
+  /* Counter walls */
+  let swA=0,swB=0;
+  for(const[k,u]of s.b){if(u.t!=="S")continue;const prog=u.o===0?(ROWS-1-(+k.split(",")[1])):(+k.split(",")[1]);
+    if(prog>=4){if(u.o===0)swA++;else swB++;}}
+  if(swB>=4)e+=25*sfA;if(swA>=4)e-=25*sfB;
   return e;}
 
-/* Old simple eval kept for Normal difficulty */
-function evalSimple(s){const w=winBySc(s);if(w===0)return 1e6-s.ply;if(w===1)return-1e6+s.ply;let e=100*(s.s[0]-s.s[1]);
-  for(const[k,u]of s.b){const r=+k.split(",")[1],prog=u.o===0?(ROWS-1-r):r,sign=u.o===0?1:-1;
-    e+=sign*3*u.n*prog+sign*6*u.n;
-    if(u.t==="F"){const[c,rr]=P(k);for(const[nc,nr]of nb(c,rr))if(onB(nc,nr)){const t=s.b.get(K(nc,nr));if(t&&t.o!==u.o&&str(t)<u.n)e+=sign*8*t.n;}}}return e;}
+/* Fast leaf eval: path scanning, coordination, balanced runner/fighter valuation */
+/* Eval weights (tuned by self-play) */
+const EW={sc:400,rBase:20,row:12,rowPerTile:10,st2:20,st3:80,clear:10,block:15,edge:0.7,fBase:28,fProg:12,fBack:40,f3:60,fLane:0,fAtk:35,sProg:2,sEdge:90,wall:1,thDie:0.1,thSafe:0.75,kRisk:0.9,thr:80,thr2:150,lane2:130,lane3:280,mix:50,noF:60,noR:50,fVsR:35,rVsF:25,bSyn:40,mat:5,tbk:40,race:0,near:0};
+/* Real game ply at the search root, so the eval knows how close the ply-500 tiebreak is */
+let EVAL_BASE_PLY=0;
+function evalFast(s){
+  const w=winBySc(s);if(w===0)return 1e6-s.ply;if(w===1)return-1e6+s.ply;
+  let e=EW.sc*(s.s[0]-s.s[1]),thA=0,thB=0;
+  const appA=new Set(),appB=new Set();
+  let matA=0,matB=0,blockedRA=0,blockedRB=0,fA=0,fB=0,rA=0,rB=0;
+
+  /* Pre-pass: runner threats + fighters for kamikaze lookahead */
+  const runnerThreats=[];const allFighters=[];let f2A=0,f2B=0;
+  for(const[k,u]of s.b){
+    if(u.t==="R"){const[c,r]=P(k);const dist=u.o===0?r:ROWS-1-r;
+      runnerThreats.push({c,r,mtb:dist===0?0:Math.ceil(dist/u.n),n:u.n,o:u.o});}
+    if(u.t==="F"){const[c,r]=P(k);allFighters.push({c,r,n:u.n,o:u.o});if(u.n===2){if(u.o===0)f2A++;else f2B++;}}}
+
+  function kamikazeRisk(c,r,owner){
+    for(const ef of allFighters){if(ef.o===owner)continue;
+      for(const[nc,nr]of nb(ef.c,ef.r)){if(!onB(nc,nr)||s.b.has(K(nc,nr)))continue;
+        for(const[nc2,nr2]of nb(nc,nr)){if(nc2===c&&nr2===r)return true;}}}
+    return false;}
+
+  for(const[k,u]of s.b){
+    const[c,r]=P(k),sign=u.o===0?1:-1;
+    const prog=u.o===0?(ROWS-1-r):r;
+    const dir=u.o===0?-1:1,atE=adjToEdge(c,r,u.o);
+    if(u.o===0)matA+=u.n;else matB+=u.n;
+    let unitVal=0;
+
+    if(u.t==="R"){
+      if(u.o===0)rA++;else rB++;
+      const dist=u.o===0?r:ROWS-1-r;
+      /* Smooth gradient: every row closer is worth exactly 12 more — no flat bands */
+      /* A Runner-3 moving 3 rows gains 36 value; moving 2 rows gains 24; moving 1 gains 12 */
+      /* This makes full-speed moves always strictly better than partial moves */
+      const distBonus=Math.max(0,(ROWS-1-dist)*(EW.row+EW.rowPerTile*u.n));
+      /* Stack bonus: Runner-3 banks 3VP in 1 move — disproportionately valuable */
+      const stackBonus=u.n===3?EW.st3:u.n===2?EW.st2:0;
+      unitVal=EW.rBase*u.n+distBonus+stackBonus;
+      if(dist<=u.n){
+        /* Ready to bank: worth LESS than the points it would bank (a bird in the hand),
+           and no extra threat/lane bonuses on top, otherwise the AI parks runners on the edge forever */
+        unitVal=Math.round(EW.edge*EW.sc*u.n);
+      }else{
+        let ps=0,blocked=false;
+        const mx=Math.min(u.n+4,dist);
+        for(let step=1;step<=mx;step++){
+          const nr=r+dir*step;if(nr<0||nr>=ROWS)break;
+          let clear=false;
+          for(let dc=-1;dc<=1;dc++){const nc=c+dc;if(nc>=0&&nc<colsR(nr)&&!s.b.has(K(nc,nr))){clear=true;break;}}
+          if(!clear){ps-=EW.block;blocked=true;break;}ps+=EW.clear;}
+        if(blocked){if(u.o===0)blockedRA++;else blockedRB++;}
+        unitVal+=ps*u.n;
+        if(!blocked){if(u.o===0)appA.add(c);else appB.add(c);}
+        /* One move from banking range: find a hex within reach that is in range and not next to an enemy that can take it */
+        if(EW.near&&dist<=2*u.n){const fr=[[c,r,0]],seen=new Set([k]);let hit=false;
+          while(fr.length&&!hit){const[cc,cr,d]=fr.pop();if(d>=u.n)continue;
+            for(const[nc,nr]of nbb(cc,cr)){const nk=K(nc,nr);if(s.b.has(nk)||seen.has(nk))continue;seen.add(nk);
+              const nd=u.o===0?nr:ROWS-1-nr;
+              if(nd<=u.n){let bad=false;for(const[xc,xr]of nbb(nc,nr)){const en=s.b.get(K(xc,xr));
+                  if(en&&en.o!==u.o&&(en.t==="F"||(en.t==="R"&&en.n>=u.n))){bad=true;break;}}
+                if(!bad){hit=true;break;}}
+              fr.push([nc,nr,d+1]);}}
+          if(hit)unitVal=Math.max(unitVal,Math.round(EW.near*EW.sc*u.n));}
+        /* Race: a runner with no enemy piece able to cut it off before it reaches banking range
+           is close to banked points, however far it still has to go */
+        if(EW.race){const mtb=Math.ceil((dist-u.n)/u.n)+1;let cut=false;
+          for(const ef of allFighters){if(ef.o===u.o)continue;const ahead=u.o===0?ef.r<=r+1:ef.r>=r-1;
+            if(ahead&&Math.abs(ef.c-c)<=1+mtb+(Math.abs(ef.r-r)>>1)){cut=true;break;}}
+          if(!cut)for(const t of runnerThreats){if(t.o===u.o||t.n<u.n)continue;const ahead=u.o===0?t.r<=r+1:t.r>=r-1;
+            if(ahead&&Math.abs(t.c-c)<=1+mtb*t.n){cut=true;break;}}
+          if(!cut)unitVal+=Math.round(EW.race*u.n/mtb);}}
+
+    }else if(u.t==="F"){
+      if(u.o===0)fA++;else fB++;
+      const fwdBonus=prog<=2?prog*8-EW.fBack:prog*EW.fProg;
+      unitVal=EW.fBase*u.n+fwdBonus;
+      /* Fighter-3 is the only piece that can attack a Fighter-2 wall: worth more when the enemy has F2s */
+      if(u.n===3){const eF2=u.o===0?f2B:f2A;if(eF2>=1)unitVal+=EW.f3*Math.min(eF2,3)/2;}
+      for(const t of runnerThreats){if(t.o===u.o)continue;
+        if(Math.abs(t.c-c)<=1){const ahead=t.o===0?(r<t.r):(r>t.r);/* in front of the enemy runner */
+          if(ahead&&t.mtb<=6)unitVal+=EW.fLane*t.n*(7-t.mtb);}}
+      for(const[nc,nr]of nbb(c,r)){
+        const t=s.b.get(K(nc,nr));
+        if(t&&t.o!==u.o&&str(t)<u.n)unitVal+=EW.fAtk*t.n;}
+
+    }else{
+      unitVal=2+EW.sProg*prog;
+      if(atE){unitVal+=EW.sEdge;if(u.o===0)thA++;else thB++;}
+      else{
+        for(const t of runnerThreats){if(t.o===u.o)continue;
+          if(Math.abs(t.c-c)<=1){const ahead=t.o===0?(r<t.r):(r>t.r);/* in front of the enemy runner */
+            if(ahead){const bv=t.mtb<=1?80:t.mtb<=2?50:t.mtb<=3?25:t.mtb<=5?12:0;
+              unitVal+=EW.wall*bv*t.n;break;}}}}}
+
+    let threatened=false;
+    for(const[nc,nr]of nbb(c,r)){
+      const en=s.b.get(K(nc,nr));if(!en||en.o===u.o)continue;
+      if(en.t==="S"&&u.t==="S"){threatened=true;break;}
+      if(en.t==="R"&&u.t==="R"&&en.n>=u.n){threatened=true;break;}
+      if(en.t==="F"&&str(u)<en.n){threatened=true;break;}}
+    if(threatened){
+      /* Adjacent threat: if the opponent moves next it is lost; if we move next we can usually save it */
+      const willDie=(s.turn!==u.o);
+      unitVal=willDie?Math.floor(unitVal*EW.thDie):Math.floor(unitVal*EW.thSafe);}
+    else if(u.t==="R"&&s.turn!==u.o&&kamikazeRisk(c,r,u.o)){
+      /* Fighter 2 hexes away needs two moves to strike; the runner gets a turn to escape. Mild concern only. */
+      unitVal=Math.floor(unitVal*EW.kRisk);}
+    e+=sign*unitVal;}
+
+  e+=EW.thr*(thA-thB);
+  if(thA>=2)e+=EW.thr2;if(thB>=2)e-=EW.thr2;
+  const fkA=appA.size,fkB=appB.size;
+  if(fkA>=3)e+=EW.lane3;else if(fkA>=2)e+=EW.lane2;
+  if(fkB>=3)e-=EW.lane3;else if(fkB>=2)e-=EW.lane2;
+  e+=EW.mix*Math.min(rA,fA)-EW.mix*Math.min(rB,fB);
+  if(rA>=1&&fA===0)e-=EW.noF*rA;if(rB>=1&&fB===0)e+=EW.noF*rB;
+  if(rA===0&&fA>=2)e-=EW.noR;if(rB===0&&fB>=2)e+=EW.noR;
+  if(rB>=1)e+=EW.fVsR*fA;if(rA>=1)e-=EW.fVsR*fB;
+  if(fB>=2)e+=EW.rVsF*fkA;if(fA>=2)e-=EW.rVsF*fkB;
+  if(blockedRA&&fA)e+=EW.bSyn*Math.min(fA,blockedRA);
+  if(blockedRB&&fB)e-=EW.bSyn*Math.min(fB,blockedRB);
+  e+=EW.mat*(matA-matB);
+  /* Tiebreak awareness: with scores level, tiles alive decide the game at ply 500 */
+  if(s.s[0]===s.s[1]){const late=Math.min(1,Math.max(0,(EVAL_BASE_PLY+s.ply-150)/300));
+    if(late>0)e+=late*EW.tbk*(matA-matB);}
+  return e;}
+
+/* Sort moves by moveOrd, computing each key once (comparator used to call it ~13x per move) */
+function sortByOrd(arr,s){const k=new Array(arr.length);for(let i=0;i<arr.length;i++)k[i]=moveOrd(arr[i],s);
+  const idx=arr.map((_,i)=>i).sort((p,q)=>k[q]-k[p]);const out=idx.map(i=>arr[i]);
+  for(let i=0;i<arr.length;i++)arr[i]=out[i];return arr;}
+/* Move ordering — combines prioritized by result quality */
+let _moS=null;const _moT=new Map();
+function moveOrd(a,s){
+  const me=s.turn;
+  if(a.type==="score"){const u=s.b.get(a.from);return 900+(u?.n||1)*30;}
+  if(a.type==="attack"){const t=s.b.get(a.to),u=s.b.get(a.from);
+    let safe=true;const[tc,tr]=P(a.to);
+    for(const[nc,nr]of nbb(tc,tr)){
+      const en=s.b.get(K(nc,nr));if(!en||en.o===me)continue;
+      if(en.t==="F"&&u&&str(u)<en.n){safe=false;break;}}
+    return safe?750+(t?.n||1)*20:300;}
+  if(a.type==="kamikaze"){const u=s.b.get(a.from);
+    const[kc,kr]=P(a.from);let kamEn=0,friendly=0;
+    for(const[nc,nr]of nbb(kc,kr)){
+      const t=s.b.get(K(nc,nr));
+      if(t&&t.o!==me)kamEn+=t.n;else if(t&&t.o===me)friendly+=t.n;}
+    const net=kamEn-friendly-(u?.n||1);
+    return net>=2?780+net*15:(net>=0?450:120);}
+  if(a.type==="combine"){const u=s.b.get(a.from),v=s.b.get(a.to);
+    const n=(u?u.n:0)+(v?v.n:0);
+    return 400+n*10+(a.ch==="F"?10:0);}
+  const u=s.b.get(a.from);if(!u)return 0;
+  const[c1,r1]=P(a.from),[c2,r2]=P(a.to);
+  const fwd=u.o===0?(r1-r2):(r2-r1);
+  /* Reaching a hex from which this unit can bank next turn */
+  const dTo=u.o===0?r2:ROWS-1-r2,dFr=u.o===0?r1:ROWS-1-r1;
+  if(dTo<=spd(u)&&dFr>spd(u)){let hit=false;
+    for(const[nc,nr]of nbb(c2,r2)){const en=s.b.get(K(nc,nr));if(!en||en.o===u.o)continue;
+      if((en.t==="F"&&str(u)<en.n)||(en.t==="R"&&u.t==="R"&&en.n>=u.n)||(en.t==="S"&&u.t==="S")){hit=true;break;}}
+    if(!hit)return 800+u.n*20;}
+  if(s!==_moS){_moS=s;_moT.clear();}
+  let threatened=_moT.get(a.from);
+  if(threatened===undefined){threatened=false;
+  for(const[nc,nr]of nbb(c1,r1)){
+    const en=s.b.get(K(nc,nr));if(!en||en.o===u.o)continue;
+    if(en.t==="S"&&u.t==="S"){threatened=true;break;}
+    if(en.t==="R"&&u.t==="R"&&en.n>=u.n){threatened=true;break;}
+    if(en.t==="F"&&str(u)<en.n){threatened=true;break;}}
+  _moT.set(a.from,threatened);}
+  if(threatened){
+    let safe=true;
+    for(const[nc,nr]of nbb(c2,r2)){
+      const en=s.b.get(K(nc,nr));if(!en||en.o===u.o)continue;
+      if(en.t==="S"&&u.t==="S"){safe=false;break;}
+      if(en.t==="R"&&u.t==="R"&&en.n>=u.n){safe=false;break;}
+      if(en.t==="F"&&str(u)<en.n){safe=false;break;}}
+    return safe?570+u.n*15:120;}
+  for(const[nc,nr]of nbb(c2,r2)){
+    const en=s.b.get(K(nc,nr));if(!en||en.o===u.o)continue;
+    if(en.t==="F"&&str(u)<en.n)return 60;
+    if(en.t==="R"&&u.t==="R"&&en.n>=u.n)return 80;}
+  if(u.t==="R"&&fwd>0)return 480+fwd*20+u.n*10;
+  return 350+Math.max(0,fwd)*15+(u.t==="R"?u.n*8:0);}
 
 function aiNov(st){const a=legal(st);if(!a.length)return null;const me=st.turn;
   const f=a.filter(x=>x.type==="score"||(x.type==="move"&&(me===0?P(x.to)[1]<P(x.from)[1]:P(x.to)[1]>P(x.from)[1])));
   return(f.length&&Math.random()<.55)?f[Math.floor(Math.random()*f.length)]:a[Math.floor(Math.random()*a.length)];}
 function aiNorm(st){const a=legal(st);if(!a.length)return null;const me=st.turn,sign=me===0?1:-1;
-  const sc=a.map(x=>({a:x,v:sign*evalSimple(applyA(st,x))}));let best=-Infinity;for(const s of sc)if(s.v>best)best=s.v;
+  const sc=a.map(x=>({a:x,v:sign*evalFast(applyA(st,x))}));let best=-Infinity;for(const s of sc)if(s.v>best)best=s.v;
   const near=sc.filter(s=>s.v>=best-15).map(s=>s.a);return near[Math.floor(Math.random()*near.length)];}
 
-/* Hard cap on total evaluations per AI move — guarantees no search configuration can ever hang the browser. */
-const NODE_BUDGET=60000;
-function abSearch(st,leafEvFn,depth,branchCap){
-  const a=legal(st);if(!a.length)return null;const me=st.turn;
-  let budget=NODE_BUDGET;
-  function ab(s,d,al,bt){
-    if(budget<=0||d===0||isEnd(s))return leafEvFn(s);
-    const a2=legal(s);if(!a2.length)return leafEvFn(s);
-    budget-=a2.length;
-    /* cheap ordering pass — never the expensive eval, regardless of branching factor */
-    const sign=s.turn===0?1:-1,sc=a2.map(x=>({a:x,v:sign*evalSimple(applyA(s,x))})).sort((a,b)=>b.v-a.v).slice(0,branchCap);
-    if(s.turn===0){let v=-1e9;for(const{a:x}of sc){v=Math.max(v,ab(applyA(s,x),d-1,al,bt));al=Math.max(al,v);if(al>=bt||budget<=0)break;}return v;}
-    else{let v=1e9;for(const{a:x}of sc){v=Math.min(v,ab(applyA(s,x),d-1,al,bt));bt=Math.min(bt,v);if(al>=bt||budget<=0)break;}return v;}}
-  const sign=me===0?1:-1;
-  const sc=a.map(x=>({a:x,v:sign*evalSimple(applyA(st,x))})).sort((x,y)=>y.v-x.v).slice(0,branchCap+2);
-  let bA=sc[0].a,bV=-1e9;
-  for(const{a:x}of sc){const v=sign*ab(applyA(st,x),depth-1,-1e9,1e9);if(v>bV){bV=v;bA=x;}if(budget<=0)break;}
-  return bA;}
+/* === TIME-LIMITED SEARCH: evalFast leaves, combines never reduced === */
+/* Search settings (verified with the arena): branch cap, quiescence depth */
+const SX={cap:12,qd:3,qr:1};
+const TACT={score:1,attack:1,kamikaze:1};
+function posKey(s){const a=[];for(const[k,u]of s.b)a.push(k+u.o+u.t+u.n);a.sort();return a.join("|")+"/"+s.turn+"/"+s.s[0]+"/"+s.s[1];}
+function mvKey(m){return m.type+m.from+(m.to||"")+(m.ch||"");}
 
-function aiHard(st){
-  try{return abSearch(st,evalSmart,3,8);}catch(e){return aiNorm(st);}}
+/* Hexes where the opponent is about to bank: units already on their edge row, and hexes on it they can reach next move */
+function hotHexes(s){const opp=s.turn^1,hot=new Set();
+  const OL=legal({b:s.b,s:s.s,turn:opp,ply:s.ply,fp:s.fp});
+  for(const m of OL){if(m.type==="score")hot.add(m.from);
+    else if(m.type==="move"){const u=s.b.get(m.from),r=P(m.to)[1],dist=opp===0?r:ROWS-1-r;
+      if(dist<=spd(u)){hot.add(m.to);hot.add(m.from);}}}
+  return hot;}
+function defMoves(s,a){const hot=hotHexes(s);if(!hot.size)return[];
+  const near=new Set(hot);for(const k of hot){const[c,r]=P(k);for(const[nc,nr]of nb(c,r))if(onB(nc,nr))near.add(K(nc,nr));}
+  return a.filter(m=>m.type!=="score"&&(m.type==="attack"||m.type==="kamikaze"||(m.to&&near.has(m.to))));}
+
+function timedSearch(st,timeMs,bCap,maxD){
+  const a=legal(st);if(!a.length)return null;const me=st.turn,sign=me===0?1:-1;
+  const CAP=SX.cap||bCap;
+  const t0=Date.now(),dl=t0+timeMs;let best=a[0],nodes=0;const ABORT={};
+  const root={b:st.b,s:st.s.slice(),turn:st.turn,ply:0,fp:st.fp};
+  const TT=new Map();
+  EVAL_BASE_PLY=st.ply;
+  function tick(){if((++nodes&255)===0&&Date.now()>dl)throw ABORT;}
+
+  /* Quiescence: at the horizon keep resolving captures, detonations and banks,
+     so a position is never judged in the middle of an exchange */
+  function qs(s,al,bt,qd){
+    tick();
+    if(s.s[0]>=VPT)return 1e6-s.ply;
+    if(s.s[1]>=VPT)return-1e6+s.ply;
+    const stand=evalFast(s);
+    if(qd<=0)return stand;
+    const max=s.turn===0;
+    if(max){if(stand>=bt)return stand;if(stand>al)al=stand;}
+    else{if(stand<=al)return stand;if(stand<bt)bt=stand;}
+    const L=legalTact(s,SX.qr&&qd>=2);
+    if(!L.length)return stand;
+    sortByOrd(L,s);
+    let v=stand;
+    for(const m of L){const nv=qs(applyA(s,m),al,bt,qd-1);
+      if(max){if(nv>v)v=nv;if(v>al)al=v;}else{if(nv<v)v=nv;if(v<bt)bt=v;}
+      if(al>=bt)break;}
+    return v;}
+
+  function ab(s,d,al,bt){
+    tick();
+    if(s.s[0]>=VPT)return 1e6-s.ply;
+    if(s.s[1]>=VPT)return-1e6+s.ply;
+    if(d<=0)return SX.qd>0?qs(s,al,bt,SX.qd):evalFast(s);
+    if(s.ply>=50)return evalFast(s);
+    /* Transposition table: reuse results for positions reached by a different move order */
+    const key=posKey(s),te=TT.get(key);
+    if(te&&te.d>=d){
+      if(te.f===0)return te.v;
+      if(te.f===1&&te.v>=bt)return te.v;
+      if(te.f===2&&te.v<=al)return te.v;}
+    const a2=legal(s);if(!a2.length)return evalFast(s);
+    sortByOrd(a2,s);
+    const sc=a2.filter(x=>x.type==="score");
+    let cap=[...sc,...a2.filter(x=>x.type!=="score").slice(0,Math.max(0,CAP-sc.length))];
+    if(d>=2){const dm=defMoves(s,a2);if(dm.length){const inC=new Set(cap);let n=0;for(const m of dm){if(n>=6)break;if(!inC.has(m)){cap.push(m);n++;}}}}
+    if(te&&te.m){const m=a2.find(x=>mvKey(x)===te.m);if(m)cap=[m,...cap.filter(x=>x!==m)];}
+    const a0=al,b0=bt,max=s.turn===0;let v=max?-1e9:1e9,bm=null;
+    for(let i=0;i<cap.length;i++){const m=cap[i];
+      const rd=(i>=4&&d>=3&&!TACT[m.type])?1:0;
+      const ch=applyA(s,m);
+      let nv=ab(ch,d-1-rd,al,bt);
+      if(rd&&(max?nv>al:nv<bt))nv=ab(ch,d-1,al,bt);
+      if(max){if(nv>v){v=nv;bm=m;}if(v>al)al=v;}
+      else{if(nv<v){v=nv;bm=m;}if(v<bt)bt=v;}
+      if(al>=bt)break;}
+    if(TT.size>300000)TT.clear();
+    TT.set(key,{d,v,f:v<=a0?2:(v>=b0?1:0),m:bm?mvKey(bm):null});
+    return v;}
+
+  sortByOrd(a,root);
+  const _sc=a.filter(x=>x.type==="score");
+  /* Root candidates: the best moves by static evaluation (all moves are scored — it is cheap),
+     plus the top tactical/ordering picks that the static evaluation might undervalue */
+  const _nsAll=a.filter(x=>x.type!=="score");
+  const _sc2=_sc.map(x=>({a:x,v:sign*evalFast(applyA(root,x))}));
+  const _ev=_nsAll.map(x=>({a:x,v:sign*evalFast(applyA(root,x))}));
+  const _byEv=_ev.slice().sort((x,y)=>y.v-x.v);
+  const _ns2=[..._byEv.slice(0,CAP-4),..._ev.slice(0,4),..._byEv.slice(CAP-4)];
+  const _seen=new Set();
+  const cands=[..._sc2,..._ns2].filter(x=>{const jk=mvKey(x.a);if(_seen.has(jk))return false;_seen.add(jk);return true;}).slice(0,CAP);
+  /* Defence: always consider moves that block or confront an enemy unit that could reach its scoring edge next turn */
+  for(const m of defMoves(root,a)){const jk=mvKey(m);if(_seen.has(jk))continue;_seen.add(jk);cands.push({a:m,v:sign*evalFast(applyA(root,m))});}
+  best=cands[0].a;
+  try{
+    for(let D=2;D<=(maxD||30);D++){
+      if(Date.now()>=dl)break;
+      let bA=null,bV=-1e9,searched=0;
+      try{
+        for(const c of cands){
+          /* Root alpha-beta: later candidates only need to prove they beat the best so far */
+          const raw=ab(applyA(root,c.a),D-1,
+            me===0&&bA?bV:-1e9, me===1&&bA?-bV:1e9);
+          const v=sign*raw;c.v=v;searched++;
+          if(!bA||v>bV){bV=v;bA=c.a;}}
+      }catch(e){if(e!==ABORT)throw e;}
+      if(bA){best=bA;const i=cands.findIndex(c=>c.a===bA);if(i>0)cands.unshift(cands.splice(i,1)[0]);}
+      console.log("[AI] d:"+D+" searched:"+searched+"/"+cands.length+" nodes:"+nodes+" elapsed:"+(Date.now()-t0)+"ms");
+      if(searched<cands.length)break;}
+  }finally{EVAL_BASE_PLY=0;}
+  return best;}
+
+function aiHard(st){try{return timedSearch(st,800,8);}catch(e){return aiNorm(st);}}
+
 function aiVHard(st){
-  try{return abSearch(st,evalSmart,4,6);}catch(e){return aiHard(st);}}
-const AIF={novice:aiNov,normal:aiNorm,hard:aiHard,vhard:aiVHard};
+  const a=legal(st);if(!a.length)return null;const me=st.turn,opp=me^1;
+  const iw=a.find(x=>{if(x.type!=="score")return false;const u=st.b.get(x.from);return u&&st.s[me]+u.n>=VPT;});
+  if(iw)return iw;
+  const urgentAtk=a.filter(x=>x.type==="attack").filter(x=>{const[tc,tr]=P(x.to);return adjToEdge(tc,tr,opp);});
+  if(urgentAtk.length){urgentAtk.sort((x,y)=>(st.b.get(y.to)?.n||0)-(st.b.get(x.to)?.n||0));return urgentAtk[0];}
+  try{return timedSearch(st,1200,8);}catch(e){return aiNorm(st);}}
+
+/* Medium: a short, shallow search (looks about 2 moves each ahead), with an occasional casual move so it stays beatable */
+function aiMed(st){
+  const a=legal(st);if(!a.length)return null;const me=st.turn;
+  const iw=a.find(x=>{if(x.type!=="score")return false;const u=st.b.get(x.from);return u&&st.s[me]+u.n>=VPT;});
+  if(iw)return iw;
+  if(Math.random()<MED.slip)return aiNorm(st);
+  try{return timedSearch(st,MED.ms,8,MED.depth);}catch(e){return aiNorm(st);}}
+const MED={ms:400,depth:4,slip:0.15};
+
+const AIF={easy:aiNov,medium:aiMed,hard:aiVHard};
 
 let PREFS={theme:"light",cb:false,anim:"normal"};
 function loadP(){try{const p=JSON.parse(localStorage.getItem("cr_prefs"));if(p)PREFS={...PREFS,...p};}catch(e){}}
@@ -511,10 +816,22 @@ function renderBoard(){const svg=document.getElementById("boardSvg");svg.innerHT
   for(const dk of hl.move){if(s.b.has(dk))continue;const[c,r]=P(dk),X=cX(c,r),Y=cY(r);
     const dot=svE("circle",{cx:X,cy:Y,r:6,fill:"var(--moveGlow)",opacity:.85,style:"cursor:pointer"});
     dot.addEventListener("click",e=>{e.stopPropagation();onClick(c,r);});g.appendChild(dot);}
-  if(G.selected&&!G.aiThinking){const sActs=legal(s).filter(a=>a.from===G.selected&&a.type==="score");
-    if(sActs.length){const me=s.b.get(G.selected)?.o;
-      const er=me===0?0:ROWS-1,ey=me===0?cY(0)-SZ*.8:cY(ROWS-1)+SZ*.8;
-      for(let c=0;c<colsR(er);c++)g.appendChild(svE("circle",{cx:cX(c,er),cy:ey,r:4,fill:"var(--moveGlow)",opacity:.7}));}}
+  /* BANK OVERLAY: massive bar across the board — impossible to miss */
+  if(G.selected&&!G.aiThinking){
+    const sActs=legal(s).filter(a=>a.from===G.selected&&a.type==="score");
+    if(sActs.length){
+      const scoreAct=sActs[0],u=s.b.get(G.selected),pts=u?u.n:1,me=u?u.o:0;
+      const barH=SZ*0.8,barW=Wt*0.5,barX=(Wt-barW)/2;
+      const barY=me===0?5:cY(ROWS-1)+SZ*0.6;
+      const barColor=me===0?"var(--A)":"var(--B)";
+      const rect=svE("rect",{x:barX,y:barY,width:barW,height:barH,rx:8,fill:barColor,opacity:.75,style:"cursor:pointer"});
+      rect.addEventListener("click",e=>{e.stopPropagation();doAct(scoreAct);});
+      g.appendChild(rect);
+      /* Text */
+      const txt=svE("text",{x:Wt/2,y:barY+barH/2+5,"text-anchor":"middle","font-family":"var(--disp)","font-size":11,fill:"#fff","font-weight":700,"pointer-events":"none"});
+      txt.textContent=`⬆ TAP TO BANK ${pts} POINT${pts>1?"S":""}`;
+      g.appendChild(txt);
+    }}
   if(G.lastAction){const lk=G.lastAction.to||G.lastAction.from;if(lk&&s.b.has(lk)){const[c,r]=P(lk);
     g.appendChild(svE("circle",{cx:cX(c,r),cy:cY(r)-SZ*.55,r:3,fill:"#e0a43a",opacity:.9,"pointer-events":"none"}));}}}
 
@@ -528,7 +845,8 @@ function buildActionButtons(bar){bar.innerHTML="";
     const tn2=tgt.t==="S"?"S":tgt.t==="R"?"R":"F";
     const b=document.createElement("button");b.className="abtn atk-btn";b.textContent=`⚔ Attack ${tn2}-${tgt.n} at ${a.to}`;b.onclick=()=>doAct(a);bar.appendChild(b);}
   const kam=acts.find(a=>a.type==="kamikaze");
-  if(kam){const b=document.createElement("button");b.className="abtn kamikaze";b.textContent="💥 Detonate (kamikaze)";b.onclick=()=>{if(confirm("Detonate? Destroys this unit + all 6 neighbors."))doAct(kam);};bar.appendChild(b);}
+  if(kam){const b=document.createElement("button");b.className="abtn kamikaze";b.textContent="💥 Detonate";
+    let armed=false;b.onclick=()=>{if(armed){doAct(kam);}else{armed=true;b.textContent="💥 TAP AGAIN to confirm";b.style.background="var(--atkGlow)";b.style.color="#fff";setTimeout(()=>{armed=false;b.textContent="💥 Detonate";b.style.background="";b.style.color="";},3000);}};bar.appendChild(b);}
   return u;}
 
 function renderSel(){const box=document.getElementById("selInfo"),bar=document.getElementById("actionBar");
@@ -562,6 +880,10 @@ function onClick(c,r){if(G.aiThinking)return;const s=G.state,k=K(c,r),u=s.b.get(
   document.getElementById("typeChooser").style.display="none";
   if(G.selected===k){G.selected=null;render();return;}
   if(G.selected){const acts=legal(s).filter(a=>a.from===G.selected);
+    /* Bank: if selected unit can score and user taps any cell on the scoring edge row */
+    const sc=acts.find(a=>a.type==="score");
+    if(sc){const su=s.b.get(G.selected);
+      if(su){const edgeRow=su.o===0?0:ROWS-1;if(r===edgeRow){doAct(sc);return;}}}
     const mv=acts.find(a=>a.type==="move"&&a.to===k);if(mv){doAct(mv);return;}
     const at=acts.find(a=>a.type==="attack"&&a.to===k);if(at){doAct(at);return;}
     const cbs=acts.filter(a=>a.type==="combine"&&a.to===k);
@@ -609,8 +931,47 @@ function undo(){if(!G.history.length||G.aiThinking)return;
   if(G.mode==="ai"&&G.history.length>=2){const p=G.history[G.history.length-2];G.history.length-=2;G.tape.length=Math.max(0,G.tape.length-2);G.state=p.state;G.selected=p.selected;G.log.length=p.logLen;G.lastAction=p.la;}
   else{const p=G.history.pop();G.tape.pop();G.state=p.state;G.selected=p.selected;G.log.length=p.logLen;G.lastAction=p.la;}render();}
 
+/* === AI WORKER: search runs off the main thread so the UI never freezes === */
+const AI_FNS=[colsR,onB,K,P,nb,_nb,nbb,str,spd,legal,legalTact,hotHexes,defMoves,applyA,winBySc,adjToEdge,evalFast,sortByOrd,moveOrd,aiNov,aiNorm,posKey,mvKey,timedSearch,aiVHard,aiMed];
+let AIW=null,AIW_ok=null,AIW_req=0,AIW_pending=null;
+function aiWorker(){
+  if(AIW_ok===false)return null;
+  if(AIW)return AIW;
+  try{
+    const src='"use strict";const ROWS='+ROWS+',VPT='+VPT+',PCAP='+PCAP+';const EW='+JSON.stringify(EW)+';let EVAL_BASE_PLY=0;const SX='+JSON.stringify(SX)+';const TACT='+JSON.stringify(TACT)+';const _KC=[],_NBC=[],_PC=new Map(),_NBB=[];let _moS=null;const _moT=new Map();\n'+
+      AI_FNS.map(f=>f.toString()).join("\n")+
+      '\nconst MED='+JSON.stringify(MED)+';const AIF={easy:aiNov,medium:aiMed,hard:aiVHard};'+
+      '\nonmessage=e=>{const{id,diff,state}=e.data;let a=null;try{a=AIF[diff](state);postMessage({id,a});}catch(err){postMessage({id,a:null,err:String(err)});}};';
+    AIW=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));
+    AIW.onerror=()=>{AIW_ok=false;AIW=null;if(AIW_pending){const f=AIW_pending;AIW_pending=null;f();}};
+    AIW_ok=true;return AIW;
+  }catch(e){AIW_ok=false;return null;}}
+
 function maybeAI(){if(G.mode!=="ai"||G.state.turn===G.aiSide)return;G.aiThinking=true;render();
-  setTimeout(()=>{const a=AIF[G.aiDiff](G.state);G.aiThinking=false;if(a)doAct(a);else endGame(tbk(G.state),"tiebreak");},aDelay()+120);}
+  const game=G,ply=G.state.ply,diff=G.aiDiff,minWait=aDelay()+120,t0=Date.now();
+  const finish=a=>{
+    /* Ignore stale results (new game, undo, or replay started while thinking) */
+    if(G!==game||!G.aiThinking||G.state.ply!==ply)return;
+    const wait=Math.max(0,minWait-(Date.now()-t0));
+    setTimeout(()=>{if(G!==game||G.state.ply!==ply)return;
+      G.aiThinking=false;if(a)doAct(a);else endGame(tbk(G.state),"tiebreak");},wait);};
+  const w=aiWorker();
+  if(w){
+    const id=++AIW_req;
+    const fallback=()=>{w.removeEventListener("message",onMsg);clearTimeout(guard);AIW_pending=null;
+      try{w.terminate();}catch(e){}AIW_ok=false;AIW=null;finish(AIF[diff](G.state));};
+    const onMsg=e=>{if(e.data.id!==id)return;
+      if(e.data.err){console.warn("[AI worker]",e.data.err);fallback();return;}
+      w.removeEventListener("message",onMsg);clearTimeout(guard);AIW_pending=null;finish(e.data.a);};
+    /* If the worker fails to load or hangs, fall back to the main thread */
+    const guard=setTimeout(fallback,8000);
+    AIW_pending=fallback;
+    w.addEventListener("message",onMsg);
+    try{w.postMessage({id,diff,state:G.state});}
+    catch(e){clearTimeout(guard);w.removeEventListener("message",onMsg);AIW_ok=false;AIW=null;
+      setTimeout(()=>finish(AIF[diff](G.state)),minWait);}
+  }else{
+    setTimeout(()=>finish(AIF[diff](G.state)),minWait);}}
 
 function confetti(){for(let i=0;i<25;i++){const d=document.createElement("div");d.className="confetti";
   d.style.cssText=`left:${Math.random()*100}vw;top:-20px;width:${5+Math.random()*7}px;height:${5+Math.random()*7}px;background:hsl(${Math.random()*360},80%,60%);border-radius:${Math.random()>.5?"50%":"2px"};animation:confettiFall ${1.5+Math.random()*2}s linear forwards;animation-delay:${Math.random()*.5}s;`;
@@ -621,7 +982,8 @@ function endGame(w,how){
   G.tape.push({state:G.state,action:null,text:(w===0?"A":"B")+" wins"});
   /* Save tape for replay */
   G.lastTape=G.tape.slice();
-  try{localStorage.setItem("cr_lastgame",JSON.stringify(G.tape.map(t=>({text:t.text,
+  try{localStorage.setItem("cr_lastmeta",JSON.stringify({mode:G.mode,aiSide:G.aiSide,aiDiff:G.aiDiff,winner:w,how,date:new Date().toISOString()}));
+    localStorage.setItem("cr_lastgame",JSON.stringify(G.tape.map(t=>({text:t.text,action:t.action||null,
     board:Array.from(t.state.b.entries()),score:t.state.s,turn:t.state.turn,ply:t.state.ply,fp:t.state.fp}))));}catch(e){}
   document.getElementById("replayBtn").style.display="inline-block";
   render();confetti();STATS.games++;if(w===0)STATS.wA++;else STATS.wB++;saveS();showS();
@@ -631,45 +993,59 @@ function endGame(w,how){
   document.getElementById("endModal").classList.add("show");}
 
 /* === REPLAY SYSTEM === */
-let REPLAY=null;/* {tape, idx} */
+let REPLAY=null;
 function enterReplay(tape){
   if(!tape||!tape.length)return;
-  REPLAY={tape,idx:0};
+  const norm=tape.map(t=>{
+    if(t.state)return{state:t.state,text:t.text||"",action:t.action||null};
+    return{state:{b:new Map(t.board.map(([k,v])=>[k,v])),s:t.score,turn:t.turn,ply:t.ply,fp:t.fp||0},text:t.text||"",action:t.action||null};});
+  REPLAY={tape:norm,idx:0};
   document.getElementById("endModal").classList.remove("show");
+  document.getElementById("setupScreen").style.display="none";
+  document.getElementById("gameScreen").style.display="block";
   document.getElementById("replayPanel").style.display="block";
   document.getElementById("undoBtn").style.display="none";
-  const slider=document.getElementById("rpSlider");
-  slider.max=tape.length-1;slider.value=0;
+  if(!G||!G.state)G={state:norm[0].state,selected:null,lastAction:null,mode:"replay",log:[],history:[],tape:[],lastTape:null,aiThinking:false,isTut:false};
+  document.getElementById("rpSlider").max=norm.length-1;
   renderReplayAt(0);}
 
 function renderReplayAt(idx){
-  REPLAY.idx=idx;const t=REPLAY.tape[idx];
-  /* Reconstruct board Map from stored data */
-  const st={b:new Map(t.board.map(([k,v])=>[k,v])),s:t.score,turn:t.turn,ply:t.ply,fp:t.fp};
-  /* Temporarily set G.state for renderBoard */
-  const savedState=G.state,savedSel=G.selected;
+  if(!REPLAY||!G)return;
+  REPLAY.idx=idx;
+  const t=REPLAY.tape[idx];const st=t.state;
+  const sv=G.state,ss=G.selected,sl=G.lastAction;
   G.state=st;G.selected=null;G.lastAction=null;
   renderBoard();
-  G.state=savedState;G.selected=savedSel;
-  /* Update controls */
+  G.state=sv;G.selected=ss;G.lastAction=sl;
   document.getElementById("rpSlider").value=idx;
-  document.getElementById("rpPly").textContent=(idx)+" / "+(REPLAY.tape.length-1);
-  document.getElementById("rpAction").textContent=t.text||"Start";
+  document.getElementById("rpPly").textContent=idx+" / "+(REPLAY.tape.length-1);
+  const rpAction=document.getElementById("rpAction");if(rpAction)rpAction.textContent=t.text||"Start";
+  const rpLog=document.getElementById("rpLog");
+  if(rpLog){rpLog.innerHTML="";
+    REPLAY.tape.forEach((entry,i)=>{
+      const d=document.createElement("div");
+      d.textContent=(i===0?"—  ":i+".  ")+(entry.text||"Start");
+      d.style.cssText="padding:2px 3px;border-radius:3px;cursor:pointer;";
+      if(i===idx)d.style.cssText+="background:var(--A);color:var(--panel);font-weight:600;";
+      d.addEventListener("click",()=>renderReplayAt(i));
+      rpLog.appendChild(d);});
+    if(rpLog.children[idx])rpLog.children[idx].scrollIntoView({block:"nearest"});}
   document.getElementById("rpPrev").disabled=idx<=0;
   document.getElementById("rpStart").disabled=idx<=0;
   document.getElementById("rpNext").disabled=idx>=REPLAY.tape.length-1;
   document.getElementById("rpEnd").disabled=idx>=REPLAY.tape.length-1;
-  /* Update score display */
-  document.getElementById("scoreA").textContent=t.score[0]+" / "+VPT;
-  document.getElementById("scoreB").textContent=t.score[1]+" / "+VPT;
+  document.getElementById("scoreA").textContent=st.s[0]+" / "+VPT;
+  document.getElementById("scoreB").textContent=st.s[1]+" / "+VPT;
   document.getElementById("tilesA").textContent=tAlive(st,0)+" tiles";
   document.getElementById("tilesB").textContent=tAlive(st,1)+" tiles";
-  document.getElementById("turnCount").textContent="Replay · ply "+t.ply;}
+  document.getElementById("turnCount").textContent="Replay · ply "+st.ply;}
 
 function exitReplay(){
+  const hadGame=G&&G.mode!=="replay"&&G.state;
   REPLAY=null;
   document.getElementById("replayPanel").style.display="none";
-  if(G)render();}
+  if(hadGame)render();
+  else{G=null;document.getElementById("gameScreen").style.display="none";showSetup();}}
 
 function loadLastGame(){
   try{const raw=localStorage.getItem("cr_lastgame");if(!raw)return null;return JSON.parse(raw);}catch(e){return null;}}
@@ -688,7 +1064,7 @@ const TS=[
     setup:()=>({b:new Map([[K(2,2),{o:0,n:1,t:"S"}],[K(2,1),{o:1,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
   {title:"Runners attack runners",text:"A runner can destroy an enemy <b>runner of equal or lower stack</b> — but nothing else. Tap yours, then tap the red enemy.",
     setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"R"}],[K(2,1),{o:1,n:2,t:"R"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
-  {title:"Kamikaze!",text:"A fighter can <b>detonate</b>, destroying itself and everything in the 6 surrounding hexes — enemies <i>and</i> your own tiles. Tap your fighter, then hit 💥 Detonate.",
+  {title:"Detonate!",text:"A fighter can <b>detonate</b>, destroying itself and everything in the 6 surrounding hexes — enemies <i>and</i> your own tiles. Tap your fighter, then hit 💥 Detonate.",
     setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"F"}],[K(2,1),{o:1,n:1,t:"S"}],[K(1,2),{o:1,n:1,t:"S"}],[K(3,2),{o:0,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="kamikaze"},
   {title:"Score!",text:"Your <b>Runner-2</b> is near the edge. Select it and tap <b>⬆ Bank</b> to score 2 points!",
     setup:()=>({b:new Map([[K(4,1),{o:0,n:2,t:"R"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="score"},
@@ -701,7 +1077,7 @@ function renderTutStep(){const scr=document.getElementById("tutorialScreen");
   const step=TS[TUT.step];
   scr.innerHTML=`<div class="tut-card"><div class="tut-step">Step ${TUT.step+1} of ${TS.length}</div><h2>${step.title}</h2><p class="tut-text">${step.text}</p><svg id="tutBoardSvg"></svg><div id="tutSelInfo" style="font-family:var(--mono);font-size:11px;min-height:24px;margin-bottom:6px"></div><div id="tutActionBar" class="actionbar"></div><div class="tut-btns"><button class="tut-btn" id="tutSkip">Skip tutorial</button></div></div>`;
   document.getElementById("tutSkip").onclick=()=>{scr.style.display="none";showSetup();};
-  G={state:step.setup(),mode:"hotseat",aiSide:0,aiDiff:"normal",selected:null,aiThinking:false,log:[],history:[],lastAction:null,isTut:true};
+  G={state:step.setup(),mode:"hotseat",aiSide:0,aiDiff:"medium",selected:null,aiThinking:false,log:[],history:[],lastAction:null,isTut:true};
   renderTutBoard();}
 function renderTutBoard(){const svg=document.getElementById("tutBoardSvg");if(!svg)return;svg.innerHTML="";
   const TR=5,TC=5,ts=28,tw=Math.sqrt(3)*ts,tox=30,toy=30;
@@ -754,7 +1130,7 @@ function tutDo(a){G.state=applyA(G.state,a);G.selected=null;
   if(TS[TUT.step].done(a))setTimeout(()=>{TUT.step++;renderTutStep();},500);else renderTutBoard();}
 
 /* WIRING */
-let sMode="hotseat",sASide="A",sFirst="coin",sDiff="normal";
+let sMode="hotseat",sASide="A",sFirst="coin",sDiff="medium";
 function wireOpts(id,cb){document.getElementById(id).addEventListener("click",e=>{const b=e.target.closest(".optbtn");if(!b)return;document.querySelectorAll("#"+id+" .optbtn").forEach(x=>x.classList.remove("active"));b.classList.add("active");cb(b);});}
 wireOpts("modeRow",b=>{sMode=b.dataset.mode;document.getElementById("aiSideGroup").style.display=sMode==="ai"?"block":"none";document.getElementById("diffGroup").style.display=sMode==="ai"?"block":"none";});
 wireOpts("aiSideRow",b=>{sASide=b.dataset.side;});wireOpts("diffRow",b=>{sDiff=b.dataset.diff;});wireOpts("firstRow",b=>{sFirst=b.dataset.first;});
@@ -780,6 +1156,19 @@ document.getElementById("rpNext").addEventListener("click",()=>{if(REPLAY&&REPLA
 document.getElementById("rpEnd").addEventListener("click",()=>{if(REPLAY)renderReplayAt(REPLAY.tape.length-1);});
 document.getElementById("rpSlider").addEventListener("input",e=>{if(REPLAY)renderReplayAt(+e.target.value);});
 document.getElementById("rpExit").addEventListener("click",exitReplay);
+document.getElementById("endReview").addEventListener("click",()=>{const tape=(G&&G.lastTape)||loadLastGame();if(tape)enterReplay(tape);});
+/* Export the replayed game as a JSON file (move list + board after every move) for analysis */
+document.getElementById("rpExport").addEventListener("click",()=>{
+  if(!REPLAY)return;
+  let meta=null;try{meta=JSON.parse(localStorage.getItem("cr_lastmeta")||"null");}catch(e){}
+  const data={game:"Currere",format:1,exported:new Date().toISOString(),meta,
+    moves:REPLAY.tape.map((t,i)=>({i,text:t.text,action:t.action||null,turn:t.state.turn,ply:t.state.ply,
+      score:t.state.s,board:Array.from(t.state.b.entries())}))};
+  const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  const d=new Date(),pad=n=>String(n).padStart(2,"0");
+  a.href=url;a.download=`currere-game-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1500);});
 document.addEventListener("click",e=>{if(!e.target.closest("#typeChooser")&&!e.target.closest(".hextile"))document.getElementById("typeChooser").style.display="none";});
 document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT")return;
   if(e.key==="u")undo();if(e.key==="Escape"){if(REPLAY){exitReplay();return;}if(G){G.selected=null;render();}}
