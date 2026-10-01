@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#e8ecf2" id="metaTheme">
@@ -43,7 +43,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--disp);padding:0;
 /* mobile bottom bar */
 .bottombar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1.5px solid var(--line);
   padding:6px 8px calc(6px + env(safe-area-inset-bottom,0));z-index:40;justify-content:space-around;}
-@media(max-width:860px){.bottombar{display:flex;}}
+@media(max-width:860px){body.ingame .bottombar{display:flex;}}
 .bb-btn{font-family:var(--mono);font-size:10px;color:var(--soft);background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;border-radius:8px;min-width:52px;}
 .bb-btn .ico{font-size:18px;}.bb-btn:active{background:var(--grid);}
 
@@ -146,6 +146,18 @@ body{background:var(--paper);color:var(--ink);font-family:var(--disp);padding:0;
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .explosion{animation:explode .6s ease-out forwards;}
 .flash-hex{animation:flashHex .5s ease-out forwards;}
+/* detonation */
+.bx{transform-box:fill-box;transform-origin:center;pointer-events:none;}
+@keyframes bxScale{0%{transform:scale(0);opacity:1}60%{opacity:.85}100%{transform:scale(1);opacity:0}}
+@keyframes bxCore{0%{transform:scale(.2);opacity:1}25%{transform:scale(1.15);opacity:1}100%{transform:scale(1.6);opacity:0}}
+@keyframes bxHex{0%{fill:#fff3b0;opacity:1}20%{fill:#ff9a1f;opacity:1}55%{fill:#e8401c;opacity:.95}100%{fill:#5a1a0a;opacity:0}}
+@keyframes bxDebris{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rt));opacity:0}}
+@keyframes bxShake{0%,100%{transform:translate(0,0)}15%{transform:translate(-5px,3px)}30%{transform:translate(5px,-4px)}45%{transform:translate(-4px,-2px)}60%{transform:translate(3px,4px)}75%{transform:translate(-2px,1px)}}
+.bx-ring{animation:bxScale .9s cubic-bezier(.15,.7,.3,1) forwards;}
+.bx-core{animation:bxCore .75s ease-out forwards;}
+.bx-hex{animation:bxHex 1.1s ease-out forwards;}
+.bx-deb{animation:bxDebris 1s cubic-bezier(.2,.8,.4,1) forwards;}
+.bx-shake{animation:bxShake .5s ease-in-out;}
 .confetti{position:fixed;pointer-events:none;z-index:55;}
 .replay-bar{background:var(--panel);border-radius:var(--radius);padding:12px 13px;box-shadow:var(--shadow);margin-top:8px;}
 .replay-bar h3{margin:0 0 8px;font-size:10px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--soft);}
@@ -181,6 +193,41 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 .tp-actions{display:flex;flex-direction:column;gap:5px;min-height:38px;}
 .tp-actions .abtn{min-height:40px;font-size:12.5px;}
 .tp-empty{font-family:var(--mono);font-size:11px;color:var(--soft);}
+/* board touch: no double-tap zoom on the board (taps select and detonate), pinch zoom still works elsewhere */
+#boardSvg,#tutBoardSvg{touch-action:manipulation;}
+.sel-hint{font-family:var(--mono);font-size:10.5px;color:var(--soft);line-height:1.5;margin-top:6px;min-height:30px;}
+.tut-hint{font-family:var(--mono);font-size:11px;color:var(--soft);min-height:34px;margin:-4px 0 8px;line-height:1.5;}
+.rp-row{padding:2px 3px;border-radius:3px;cursor:pointer;}.rp-row.cur{background:var(--A);color:var(--panel);font-weight:600;}
+#resumeBtn{display:none;width:100%;margin-top:8px;font-family:var(--disp);font-weight:700;font-size:13px;background:var(--panel);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:11px;cursor:pointer;}
+.tut-btn:disabled{opacity:.35;cursor:default;}
+/* full screen */
+.fsbar{display:none;}
+body.fs .masthead,body.fs .turncount,body.fs .side,body.fs .bottombar{display:none!important;}
+body.fs .wrap{max-width:none;padding:0;}
+body.fs:not(.mode-tablet) #gameScreen{display:block!important;padding:0;}
+body.fs:not(.mode-tablet) .fsbar{display:flex;flex-direction:column;gap:2px;position:sticky;top:0;z-index:30;background:var(--panel);border-bottom:1.5px solid var(--line);padding:6px 10px calc(4px);padding-top:calc(6px + env(safe-area-inset-top,0));}
+.fs-row{display:flex;align-items:center;gap:8px;}
+.fs-sc{font-weight:700;font-size:18px;min-width:44px;text-align:center;border-radius:8px;padding:2px 8px;}
+.fs-sc.A{background:var(--Atint);color:var(--Adk);}.fs-sc.B{background:var(--Btint);color:var(--Bdk);}
+.fs-turn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:13px;}
+.fs-turn .dot{width:10px;height:10px;border-radius:50%;}.fs-turn.A .dot{background:var(--A);}.fs-turn.B .dot{background:var(--B);}
+.fs-btn{font-family:var(--mono);font-size:12px;background:var(--panel);border:1.5px solid var(--line);color:var(--ink);border-radius:8px;min-width:40px;min-height:36px;cursor:pointer;}
+.fs-btn:disabled{opacity:.35;}
+#fsHint{font-family:var(--mono);font-size:10px;color:var(--soft);text-align:center;min-height:14px;}
+body.fs:not(.mode-tablet) .boardcard{margin:0;border-radius:0;padding:4px;box-shadow:none;height:calc(100vh - 74px);height:calc(100dvh - 74px - env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:center;}
+body.fs:not(.mode-tablet) #boardSvg{height:100%;width:auto;max-width:100%;}
+body.replaying .tablet-panel,body.replaying .selpanel,body.replaying .logpanel{display:none!important;}
+body.replaying .replay-bar{order:-1;margin-top:0;}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--line);color:#fff;font-family:var(--mono);font-size:12px;padding:10px 14px;border-radius:10px;max-width:90vw;opacity:0;pointer-events:none;transition:all .25s;z-index:60;text-align:center;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#typeChooser{position:fixed!important;}
+.stats-ai{font-family:var(--mono);font-size:10.5px;color:var(--soft);display:flex;gap:10px;justify-content:space-between;margin-bottom:6px;}
+.stats-ai b{color:var(--ink);}
+.app-version{font-family:var(--mono);font-size:10px;color:var(--soft);text-align:center;margin-top:10px;}
+@media(min-width:861px){body:not(.fs) #boardSvg{max-height:calc(100vh - 110px);width:auto;max-width:100%;margin:0 auto;}}
+.replay-slider{min-width:0;}
+#gameScreen>*,.side,.replay-bar{min-width:0;}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
 </style>
 </head>
 <body>
@@ -191,7 +238,8 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 <button class="hdr-btn undo" id="undoBtn" style="display:none" title="Undo (U)">↩ Undo</button>
 <button class="hdr-btn sec" id="replayBtn" style="display:none" title="Review game">▶ Review</button>
 <button class="hdr-btn sec" id="rulesBtn">Rules</button>
-<button class="hdr-btn sec" id="settingsBtn">⚙</button>
+<button class="hdr-btn sec" id="fsBtn" title="Full screen (F)">⛶ Full screen</button>
+<button class="hdr-btn sec" id="settingsBtn" aria-label="Settings">⚙</button>
 <button class="hdr-btn" id="newGameTop">New Game</button>
 </div></div>
 <div class="turncount" id="turnCount"></div>
@@ -211,22 +259,28 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 <div class="optgroup"><div class="lbl">First move</div><div class="optrow" id="firstRow">
 <button class="optbtn active" data-first="coin">Coin flip</button><button class="optbtn" data-first="A">Player A</button><button class="optbtn" data-first="B">Player B</button></div></div>
 <div class="setup-btns"><button id="tutorialBtn">Learn to play</button><button id="startBtn">Start game</button></div>
+<button id="resumeBtn"></button>
 </div></div>
 
 <div id="tutorialScreen"></div>
+<div class="fsbar" id="fsBar">
+<div class="fs-row"><button class="fs-btn" id="fsExit" aria-label="Exit full screen">✕</button><span class="fs-sc A" id="fsA" aria-label="Player A score">0</span>
+<div class="fs-turn A" id="fsTurn"><span class="dot"></span><span id="fsTurnText"></span></div>
+<span class="fs-sc B" id="fsB" aria-label="Player B score">0</span><button class="fs-btn" id="fsUndo" aria-label="Undo">↩</button><button class="fs-btn" id="fsRules" aria-label="Rules">?</button></div>
+<div id="fsHint"></div></div>
 <div id="gameScreen">
 <div class="tablet-panel flip" id="panelB">
 <div class="tp-controls">
-<button id="tpNewB">🆕 New</button><button id="tpUndoB">↩ Undo</button><button id="tpRulesB">📖 Rules</button><button id="tpSettingsB">⚙</button>
+<button id="tpNewB">🆕 New</button><button id="tpUndoB">↩ Undo</button><button id="tpRulesB">📖 Rules</button><button id="tpFsB" aria-label="Full screen">⛶</button><button id="tpSettingsB" aria-label="Settings">⚙</button>
 </div>
 <div class="tp-head"><span class="tp-who B">Player B</span><span class="tp-score" id="tpScoreB">0 / 6</span></div>
 <div class="tp-status" id="tpStatusB">Waiting…</div>
 <div class="tp-actions" id="tpActionsB"></div>
 </div>
-<div class="boardcard"><svg id="boardSvg"></svg></div>
+<div class="boardcard"><svg id="boardSvg" role="img" aria-label="Game board"></svg></div>
 <div class="tablet-panel" id="panelA">
 <div class="tp-controls">
-<button id="tpNewA">🆕 New</button><button id="tpUndoA">↩ Undo</button><button id="tpRulesA">📖 Rules</button><button id="tpSettingsA">⚙</button>
+<button id="tpNewA">🆕 New</button><button id="tpUndoA">↩ Undo</button><button id="tpRulesA">📖 Rules</button><button id="tpFsA" aria-label="Full screen">⛶</button><button id="tpSettingsA" aria-label="Settings">⚙</button>
 </div>
 <div class="tp-head"><span class="tp-who A">Player A</span><span class="tp-score" id="tpScoreA">0 / 6</span></div>
 <div class="tp-status" id="tpStatusA">Waiting…</div>
@@ -234,12 +288,12 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 </div>
 <div class="side">
 <div class="panel"><h3>Score</h3><div class="scoreboard">
-<div class="scorebox A" id="scoreboxA"><div class="who">Player A</div><div class="num" id="scoreA">0 / 6</div><div class="tiles" id="tilesA">18 tiles</div></div>
-<div class="scorebox B" id="scoreboxB"><div class="who">Player B</div><div class="num" id="scoreB">0 / 6</div><div class="tiles" id="tilesB">18 tiles</div></div></div>
+<div class="scorebox A" id="scoreboxA"><div class="who" id="whoA">Player A</div><div class="num" id="scoreA">0 / 6</div><div class="tiles" id="tilesA">18 tiles</div></div>
+<div class="scorebox B" id="scoreboxB"><div class="who" id="whoB">Player B</div><div class="num" id="scoreB">0 / 6</div><div class="tiles" id="tilesB">18 tiles</div></div></div>
 <div class="turnbanner A" id="turnBanner"><div class="dot"></div><span id="turnText">Player A</span><span class="thinking" id="thinkingText"></span></div></div>
-<div class="panel"><h3>Selected unit</h3><div id="selInfo"><span class="none">Tap one of your tiles.</span></div><div class="actionbar" id="actionBar"></div>
-<div class="legend-mini"><div class="row"><span class="sw" style="background:var(--moveGlow)"></span> move</div><div class="row"><span class="sw" style="background:var(--atkGlow)"></span> attack</div><div class="row"><span class="sw" style="background:var(--combGlow)"></span> combine</div></div></div>
-<div class="panel"><h3>Log</h3><div id="log"></div></div>
+<div class="panel selpanel"><h3>Selected unit</h3><div id="selInfo"><span class="none">No unit selected.</span></div><div class="sel-hint" id="selHint"></div>
+<div class="legend-mini"><div class="row"><span class="sw" style="background:var(--moveGlow)"></span> move</div><div class="row"><span class="sw" style="background:var(--atkGlow)"></span> attack · detonate</div><div class="row"><span class="sw" style="background:var(--combGlow)"></span> stack</div></div></div>
+<div class="panel logpanel"><h3>Log</h3><div id="log"></div></div>
 <div class="replay-bar" id="replayPanel" style="display:none">
 <h3>Replay</h3>
 <div class="replay-controls">
@@ -260,37 +314,51 @@ body.mode-tablet .masthead,body.mode-tablet .turncount{display:none;}
 <div class="bottombar">
 <button class="bb-btn" onclick="showSetup()"><span class="ico">🆕</span>New</button>
 <button class="bb-btn" onclick="undo()"><span class="ico">↩</span>Undo</button>
+<button class="bb-btn" id="bbFs"><span class="ico">⛶</span>Full</button>
 <button class="bb-btn" onclick="document.getElementById('rulesModal').classList.add('show')"><span class="ico">📖</span>Rules</button>
 <button class="bb-btn" onclick="document.getElementById('settingsModal').classList.add('show')"><span class="ico">⚙</span>Settings</button>
 </div>
-
-<div id="typeChooser"><div class="tc-label">Build as…</div><div class="tc-row"><button id="tcRunner">Runner</button><button id="tcFighter">Fighter</button></div></div>
-<div class="modal-backdrop" id="endModal"><div class="modal"><h2 id="endTitle"></h2><p id="endBody"></p><div class="modalbtns"><button class="primary" id="endNewGame">New game</button><button class="sec" id="endReview">▶ Review game</button></div></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="typeChooser"><div class="tc-label">Stack as…</div><div class="tc-row"><button id="tcRunner">Runner</button><button id="tcFighter">Fighter</button></div></div>
+<div class="modal-backdrop" id="endModal"><div class="modal"><h2 id="endTitle"></h2><p id="endBody"></p><div class="modalbtns" style="flex-wrap:wrap"><button class="primary" id="endRematch">Rematch</button><button id="endNewGame">New game</button><button class="sec" id="endReview">▶ Review</button></div></div></div>
+<div class="modal-backdrop" id="welcomeModal"><div class="modal"><h2>Welcome to Currere</h2><p>New to the game? The interactive tutorial teaches everything in about two minutes.</p><div class="modalbtns"><button class="primary" id="welcomeLearn">Show me how</button><button id="welcomeSkip">I know how to play</button></div></div></div>
 <div class="modal-backdrop" id="rulesModal"><div class="modal">
 <h2>Currere — Rules</h2>
 <div class="rules-body">
-<h3>Goal</h3><p>Run your tiles off the enemy's back edge. Each tile = 1 point. <b>First to 6 wins.</b> Tie: most points → most tiles alive → second player.</p>
-<h3>Units</h3><table><tr><th>Unit</th><th>Speed</th><th>Str</th><th>Attacks</th></tr>
-<tr><td><b>Single</b></td><td>1</td><td>1</td><td>enemy singles</td></tr>
-<tr><td><b>Runner</b> (2–3)</td><td>stack #</td><td>0</td><td>enemy runners ≤ stack</td></tr>
-<tr><td><b>Fighter</b> (2–3)</td><td>1</td><td>stack #</td><td>lower-strength enemies</td></tr></table>
-<p>Type is <b>permanent</b>. Tiles can <b>never be un-stacked</b>.</p>
-<h3>Actions (one per turn — never pass)</h3>
-<p><b>Move</b> through empty hexes. <b>Combine</b> adjacent friendlies (max 3). <b>Attack</b> adjacent enemy. <b>Detonate</b> (fighter): destroy it + all 6 neighbors. Attacker stays put.</p>
+<h3>Goal</h3><p>Bank tiles off your far edge, the edge on your opponent's side. Each banked tile is 1 point. <b>First to 6 points wins.</b></p>
+<h3>Your turn</h3><p>Take exactly <b>one action</b> with one of your units. You may not pass.</p>
+<h3>Units</h3><table><tr><th>Unit</th><th>Tiles</th><th>Speed</th><th>Can attack</th></tr>
+<tr><td><b>Single</b></td><td>1</td><td>1</td><td>enemy Singles</td></tr>
+<tr><td><b>Runner</b></td><td>2–3</td><td>= tiles</td><td>enemy Runners of the same size or smaller</td></tr>
+<tr><td><b>Fighter</b></td><td>2–3</td><td>1</td><td>any enemy with lower strength (Single 1, Runner 0, Fighter = tiles)</td></tr></table>
+<p>Nothing can attack a Fighter-3; only a detonation removes it. A unit's type is <b>permanent</b> and stacks can never be split.</p>
+<h3>Actions</h3>
+<p><b>Move</b> up to your speed through empty hexes, in any direction. You don't have to use all of it.<br>
+<b>Stack</b> onto a neighbouring friendly unit, at most 3 tiles. Two Singles: you choose Runner or Fighter.<br>
+<b>Attack</b> a neighbouring enemy you can beat. It is removed; your unit stays put.<br>
+<b>Detonate</b> a Fighter with an enemy next to it: it and everything on the 6 hexes around it are removed, yours too.<br>
+<b>Bank</b> a unit that could reach your far row this turn: it runs off the board and scores 1 point per tile.</p>
+<h3>On the screen</h3><p>Tap a unit, then tap a green dot to move, a red target to attack, a blue-outlined unit to stack, or an arrow beyond the edge to bank. Tap a Fighter twice to see its blast, and a third time to detonate.</p>
+<h3>Game end</h3><p>The game ends at <b>6 points</b>, when a player has <b>no tiles left</b>, or when <b>neither player can act</b>. Then: more points wins; if level, more tiles on the board; if still level, the player who moved second. A player with tiles but no legal action skips the turn.</p>
 </div><div class="modalbtns" style="margin-top:12px"><button class="primary" onclick="document.getElementById('rulesModal').classList.remove('show')">Close</button></div></div></div>
 
 <div class="modal-backdrop" id="settingsModal"><div class="modal" style="text-align:left">
 <h2 style="text-align:center">Settings</h2>
 <div class="setting-row"><div><div class="setting-label">Theme</div><div class="setting-sub">Light or dark</div></div><div class="setting-ctrl"><select id="setTheme"><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
 <div class="setting-row"><div><div class="setting-label">Colorblind mode</div><div class="setting-sub">Blue / orange palette</div></div><div class="setting-ctrl"><select id="setCB"><option value="off">Off</option><option value="on">On</option></select></div></div>
+<div class="setting-row"><div><div class="setting-label">Show threats</div><div class="setting-sub">Ring your units that can be taken next turn</div></div><div class="setting-ctrl"><select id="setThreats"><option value="off">Off</option><option value="on">On</option></select></div></div>
+<div class="setting-row"><div><div class="setting-label">Vibration</div><div class="setting-sub">On attacks, banks and detonations</div></div><div class="setting-ctrl"><select id="setVib"><option value="on">On</option><option value="off">Off</option></select></div></div>
 <div class="setting-row"><div><div class="setting-label">Animation speed</div></div><div class="setting-ctrl"><select id="setAnim"><option value="fast">Fast</option><option value="normal" selected>Normal</option><option value="slow">Slow</option></select></div></div>
 <div class="stats-section"><h3 style="font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);margin:0 0 8px">Statistics</h3>
 <div class="stats-grid"><div class="stat-box"><div class="sv" id="statGames">0</div><div class="sl">games</div></div><div class="stat-box"><div class="sv" id="statA">0</div><div class="sl">A wins</div></div><div class="stat-box"><div class="sv" id="statB">0</div><div class="sl">B wins</div></div></div>
+<div class="stats-ai"><span>You vs computer (won–lost):</span></div>
+<div class="stats-ai"><span>Easy <b id="statAi_easy">0–0</b></span><span>Medium <b id="statAi_medium">0–0</b></span><span>Hard <b id="statAi_hard">0–0</b></span></div>
 <button class="reset-btn" id="resetStats">Reset statistics</button></div>
-<div class="modalbtns" style="margin-top:12px"><button class="primary" onclick="document.getElementById('settingsModal').classList.remove('show')">Done</button></div></div></div>
+<div class="modalbtns" style="margin-top:12px"><button class="primary" onclick="document.getElementById('settingsModal').classList.remove('show')">Done</button></div>
+<div class="app-version" id="appVersion"></div></div></div>
 <script>
 "use strict";
-const ROWS=13,VPT=6,PCAP=500;
+const ROWS=13,VPT=6,PCAP=500;/* PCAP is only a safety limit for the AI's own look-ahead, not a game rule */
 function colsR(r){return(ROWS-r)%2===1?9:8;}
 function onB(c,r){return r>=0&&r<ROWS&&c>=0&&c<colsR(r);}
 /* Coordinate helpers are cached: the AI calls them millions of times. Returned arrays are shared — never mutate them. */
@@ -352,7 +420,8 @@ function applyA(st,a){const s={b:new Map(st.b),s:st.s.slice(),turn:st.turn,ply:s
   s.turn^=1;s.ply++;return s;}
 function winBySc(s){return s.s[0]>=VPT?0:s.s[1]>=VPT?1:null;}
 function tbk(s){if(s.s[0]!==s.s[1])return s.s[0]>s.s[1]?0:1;const a=tAlive(s,0),b=tAlive(s,1);return a!==b?(a>b?0:1):(s.fp===0?1:0);}
-function isEnd(s){if(winBySc(s)!==null)return true;if(s.ply>=PCAP)return true;
+function isEnd(s){if(winBySc(s)!==null)return true;
+  if(tAlive(s,0)===0||tAlive(s,1)===0)return true;/* a side with no tiles left ends the game */
   if(legal(s).length===0){/* current player stuck — but can opponent still act? */
     const s2={b:s.b,s:s.s,turn:s.turn^1,ply:s.ply,fp:s.fp};
     if(legal(s2).length===0)return true;/* neither can act — truly over */
@@ -414,7 +483,7 @@ function evalSmart(s){
 
 /* Fast leaf eval: path scanning, coordination, balanced runner/fighter valuation */
 /* Eval weights (tuned by self-play) */
-const EW={sc:400,rBase:20,row:12,rowPerTile:10,st2:20,st3:80,clear:10,block:15,edge:0.7,fBase:28,fProg:12,fBack:40,f3:60,fLane:0,fAtk:35,sProg:2,sEdge:90,wall:1,thDie:0.1,thSafe:0.75,kRisk:0.9,thr:80,thr2:150,lane2:130,lane3:280,mix:50,noF:60,noR:50,fVsR:35,rVsF:25,bSyn:40,mat:5,tbk:40,race:0,near:0};
+const EW={"sc":487.1,"rBase":16.6,"row":10.2,"rowPerTile":8.5,"st2":15,"st3":127,"clear":5.7,"block":15.5,"edge":0.76,"fBase":26.6,"fProg":13.3,"fBack":38,"f3":70.6,"fLane":0.042,"fAtk":28.9,"sProg":3.4,"sEdge":91.8,"wall":0.849,"thDie":0.078,"thSafe":0.705,"kRisk":0.997,"thr":89.8,"thr2":140.9,"lane2":158.2,"lane3":164,"mix":47.5,"noF":69.1,"noR":53.8,"fVsR":25.8,"rVsF":25.8,"bSyn":34.2,"mat":4.4,"tbk":38.6,"race":0.451,"near":0.025,"wallR":0.35,"fRun":7,"fStop":0.4};
 /* Real game ply at the search root, so the eval knows how close the ply-500 tiebreak is */
 let EVAL_BASE_PLY=0;
 function evalFast(s){
@@ -465,7 +534,7 @@ function evalFast(s){
           let clear=false;
           for(let dc=-1;dc<=1;dc++){const nc=c+dc;if(nc>=0&&nc<colsR(nr)&&!s.b.has(K(nc,nr))){clear=true;break;}}
           if(!clear){ps-=EW.block;blocked=true;break;}ps+=EW.clear;}
-        if(blocked){if(u.o===0)blockedRA++;else blockedRB++;}
+        if(blocked){if(u.o===0)blockedRA++;else blockedRB++;unitVal-=Math.round(distBonus*(1-EW.wallR));}
         unitVal+=ps*u.n;
         if(!blocked){if(u.o===0)appA.add(c);else appB.add(c);}
         /* One move from banking range: find a hex within reach that is in range and not next to an enemy that can take it */
@@ -499,6 +568,13 @@ function evalFast(s){
       for(const[nc,nr]of nbb(c,r)){
         const t=s.b.get(K(nc,nr));
         if(t&&t.o!==u.o&&str(t)<u.n)unitVal+=EW.fAtk*t.n;}
+      /* Fighter march: within 5 rows of its scoring edge, a Fighter is a slow but real threat.
+         Only a stronger enemy Fighter nearby (or one that could detonate next to it) can stop it. */
+      const fd=u.o===0?r:ROWS-1-r;
+      if(EW.fRun&&fd<=5){let stop=false;
+        for(const ef of allFighters){if(ef.o===u.o)continue;
+          const dr=Math.abs(ef.r-r),dc=Math.abs(ef.c-c);if(dr<=2&&dc<=2&&(ef.n>u.n||dr+dc<=2)){stop=true;break;}}
+        const fv=EW.fRun*u.n*(6-fd)*(6-fd)/2;unitVal+=stop?Math.round(fv*EW.fStop):fv;}
 
     }else{
       unitVal=2+EW.sProg*prog;
@@ -536,6 +612,7 @@ function evalFast(s){
   if(fB>=2)e+=EW.rVsF*fkA;if(fA>=2)e-=EW.rVsF*fkB;
   if(blockedRA&&fA)e+=EW.bSyn*Math.min(fA,blockedRA);
   if(blockedRB&&fB)e-=EW.bSyn*Math.min(fB,blockedRB);
+  if(matA===0||matB===0){const w=s.s[0]!==s.s[1]?(s.s[0]>s.s[1]?0:1):(matA!==matB?(matA>matB?0:1):(s.fp===0?1:0));return w===0?5e5-s.ply:-5e5+s.ply;}
   e+=EW.mat*(matA-matB);
   /* Tiebreak awareness: with scores level, tiles alive decide the game at ply 500 */
   if(s.s[0]===s.s[1]){const late=Math.min(1,Math.max(0,(EVAL_BASE_PLY+s.ply-150)/300));
@@ -725,7 +802,7 @@ function aiVHard(st){
   if(iw)return iw;
   const urgentAtk=a.filter(x=>x.type==="attack").filter(x=>{const[tc,tr]=P(x.to);return adjToEdge(tc,tr,opp);});
   if(urgentAtk.length){urgentAtk.sort((x,y)=>(st.b.get(y.to)?.n||0)-(st.b.get(x.to)?.n||0));return urgentAtk[0];}
-  try{return timedSearch(st,1200,8);}catch(e){return aiNorm(st);}}
+  try{return timedSearch(st,(typeof TMS!=="undefined"?TMS:1200),8);}catch(e){return aiNorm(st);}}
 
 /* Medium: a short, shallow search (looks about 2 moves each ahead), with an occasional casual move so it stays beatable */
 function aiMed(st){
@@ -738,27 +815,36 @@ const MED={ms:400,depth:4,slip:0.15};
 
 const AIF={easy:aiNov,medium:aiMed,hard:aiVHard};
 
-let PREFS={theme:"light",cb:false,anim:"normal"};
+/* ================= PREFERENCES ================= */
+const APP_VERSION="1.1";
+let PREFS={theme:"light",cb:false,anim:"normal",threats:false,vib:true};
 function loadP(){try{const p=JSON.parse(localStorage.getItem("cr_prefs"));if(p)PREFS={...PREFS,...p};}catch(e){}}
 function saveP(){try{localStorage.setItem("cr_prefs",JSON.stringify(PREFS));}catch(e){}}
 function applyTh(){const t=PREFS.cb?(PREFS.theme==="dark"?"dark-colorblind":"colorblind"):PREFS.theme;
   document.documentElement.setAttribute("data-theme",t);
   document.getElementById("metaTheme").setAttribute("content",getComputedStyle(document.documentElement).getPropertyValue("--tc").trim());}
 loadP();applyTh();
-document.getElementById("setTheme").value=PREFS.theme;
-document.getElementById("setCB").value=PREFS.cb?"on":"off";
-document.getElementById("setAnim").value=PREFS.anim;
-document.getElementById("setTheme").addEventListener("change",e=>{PREFS.theme=e.target.value;applyTh();saveP();if(G)render();});
-document.getElementById("setCB").addEventListener("change",e=>{PREFS.cb=e.target.value==="on";applyTh();saveP();if(G)render();});
-document.getElementById("setAnim").addEventListener("change",e=>{PREFS.anim=e.target.value;saveP();});
+const $=id=>document.getElementById(id);
+$("setTheme").value=PREFS.theme;$("setCB").value=PREFS.cb?"on":"off";$("setAnim").value=PREFS.anim;
+$("setThreats").value=PREFS.threats?"on":"off";$("setVib").value=PREFS.vib?"on":"off";
+$("setTheme").addEventListener("change",e=>{PREFS.theme=e.target.value;applyTh();saveP();if(G)render();});
+$("setCB").addEventListener("change",e=>{PREFS.cb=e.target.value==="on";applyTh();saveP();if(G)render();});
+$("setAnim").addEventListener("change",e=>{PREFS.anim=e.target.value;saveP();});
+$("setThreats").addEventListener("change",e=>{PREFS.threats=e.target.value==="on";saveP();if(G&&!G.isTut)render();});
+$("setVib").addEventListener("change",e=>{PREFS.vib=e.target.value==="on";saveP();});
+$("appVersion").textContent="Currere v"+APP_VERSION;
+function vib(p){if(PREFS.vib&&navigator.vibrate)try{navigator.vibrate(p);}catch(e){}}
 
-let STATS={games:0,wA:0,wB:0};
-function loadS(){try{const s=JSON.parse(localStorage.getItem("cr_stats"));if(s)STATS={...STATS,...s};}catch(e){}}
+/* ================= STATISTICS ================= */
+let STATS={games:0,wA:0,wB:0,ai:{easy:[0,0],medium:[0,0],hard:[0,0]}};
+function loadS(){try{const s=JSON.parse(localStorage.getItem("cr_stats"));if(s)STATS={...STATS,...s,ai:{...STATS.ai,...(s.ai||{})}};}catch(e){}}
 function saveS(){try{localStorage.setItem("cr_stats",JSON.stringify(STATS));}catch(e){}}
-function showS(){document.getElementById("statGames").textContent=STATS.games;document.getElementById("statA").textContent=STATS.wA;document.getElementById("statB").textContent=STATS.wB;}
+function showS(){$("statGames").textContent=STATS.games;$("statA").textContent=STATS.wA;$("statB").textContent=STATS.wB;
+  for(const d of ["easy","medium","hard"]){const v=STATS.ai[d]||[0,0];$("statAi_"+d).textContent=v[0]+"–"+v[1];}}
 loadS();showS();
-document.getElementById("resetStats").addEventListener("click",()=>{if(confirm("Reset all statistics?")){STATS={games:0,wA:0,wB:0};saveS();showS();}});
+$("resetStats").addEventListener("click",()=>{if(confirm("Reset all statistics?")){STATS={games:0,wA:0,wB:0,ai:{easy:[0,0],medium:[0,0],hard:[0,0]}};saveS();showS();}});
 
+/* ================= BOARD DRAWING ================= */
 let G=null;
 const SZ=22,HW=Math.sqrt(3)*SZ,OX=54,OY=60;
 function cX(c,r){return OX+HW/2+c*HW+(colsR(r)===8?HW/2:0);}
@@ -766,171 +852,228 @@ function cY(r){return OY+SZ+r*1.5*SZ;}
 function svE(n,a){const e=document.createElementNS("http://www.w3.org/2000/svg",n);for(const k in a)e.setAttribute(k,a[k]);return e;}
 function hP(x,y,s,rot){const p=[];for(let k=0;k<6;k++){const a=Math.PI/180*(60*k-90+(rot||0));p.push([x+s*Math.cos(a),y+s*Math.sin(a)]);}return p.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");}
 function uL(u){return u.t==="S"?"1":u.t==="R"?"↑"+u.n:"✦"+u.n;}
+function uName(u){return u.t==="S"?"Single":(u.t==="R"?"Runner-":"Fighter-")+u.n;}
+function hx(k){const[c,r]=P(k);return "abcdefghi"[c]+(ROWS-r);}
 function aDelay(){return PREFS.anim==="fast"?100:PREFS.anim==="slow"?500:280;}
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pName(p){if(G&&G.mode==="ai")return p===G.aiSide?"You":"Computer";return p===0?"Player A":"Player B";}
+function pShort(p){if(G&&G.mode==="ai")return p===G.aiSide?"You":"AI";return p===0?"A":"B";}
+function humanTurn(){return G&&!G.aiThinking&&!(G.mode==="ai"&&G.state.turn!==G.aiSide);}
+
+/* Highlights, bank arrows, blast preview and threat rings, shared by the game board and the tutorial board.
+   X(c,r)/Y(r) map hexes to the drawing; sz is the hex size; tap(c,r) handles taps; bank() banks the selected unit. */
+function drawOverlays(g,s,X,Y,sz,tap,bank,inside){
+  const hl={move:new Set(),attack:new Set(),stack:new Set()};let sc=null,kam=null;
+  if(G.selected&&s.b.has(G.selected)&&humanTurn()&&!G.armed){for(const a of legal(s)){if(a.from!==G.selected)continue;
+    if(a.type==="move")hl.move.add(a.to);else if(a.type==="attack")hl.attack.add(a.to);else if(a.type==="combine")hl.stack.add(a.to);
+    else if(a.type==="score")sc=a;else if(a.type==="kamikaze")kam=a;}}
+  /* threats: your units the opponent can remove next turn */
+  if(PREFS.threats&&!G.isTut&&humanTurn()&&!G.armed){const me=s.turn;
+    const opp=legal({b:s.b,s:s.s,turn:me^1,ply:s.ply,fp:s.fp}),hit=new Set();
+    for(const a of opp){if(a.type==="attack")hit.add(a.to);
+      else if(a.type==="kamikaze"){const[c,r]=P(a.from);for(const[nc,nr]of nbb(c,r)){const t=s.b.get(K(nc,nr));if(t&&t.o===me)hit.add(K(nc,nr));}}}
+    for(const k of hit){const[c,r]=P(k);if(!inside(c,r))continue;
+      g.appendChild(svE("circle",{cx:X(c,r),cy:Y(r),r:sz*.86,fill:"none",stroke:"var(--atkGlow)","stroke-width":2,"stroke-dasharray":"3 3","pointer-events":"none",class:"threat"}));}}
+  if(G.selected&&s.b.has(G.selected)){const[c,r]=P(G.selected);
+    g.appendChild(svE("polygon",{points:hP(X(c,r),Y(r),sz*0.92),fill:"none",stroke:"#fff","stroke-width":3,"pointer-events":"none"}));}
+  /* detonation preview: the fighter and its six neighbours */
+  if(G.armed&&s.b.has(G.armed)){const[c,r]=P(G.armed);const blast=[[c,r],...nbb(c,r)];
+    for(const[bc,br]of blast){if(!inside(bc,br))continue;
+      g.appendChild(svE("polygon",{points:hP(X(bc,br),Y(br),sz*0.95),fill:"rgba(192,57,43,.38)",stroke:"var(--atkGlow)","stroke-width":2.5,"pointer-events":"none",class:"blast"}));}
+    const t=svE("text",{x:X(c,r),y:Y(r)-sz*1.15,"text-anchor":"middle","font-size":sz*.9,"pointer-events":"none"});t.textContent="💥";g.appendChild(t);}
+  for(const dk of hl.attack){const[c,r]=P(dk);if(!inside(c,r))continue;
+    g.appendChild(svE("polygon",{points:hP(X(c,r),Y(r),sz*0.92),fill:"rgba(192,57,43,.25)",stroke:"var(--atkGlow)","stroke-width":3,"pointer-events":"none"}));
+    g.appendChild(svE("circle",{cx:X(c,r),cy:Y(r),r:sz*.28,fill:"var(--atkGlow)",opacity:.3,"pointer-events":"none"}));}
+  for(const dk of hl.stack){if(hl.attack.has(dk))continue;const[c,r]=P(dk);if(!inside(c,r))continue;
+    g.appendChild(svE("polygon",{points:hP(X(c,r),Y(r),sz*0.92),fill:"rgba(58,111,176,.2)",stroke:"var(--combGlow)","stroke-width":2.5,"stroke-dasharray":"4 3","pointer-events":"none"}));}
+  for(const dk of hl.move){if(s.b.has(dk))continue;const[c,r]=P(dk);if(!inside(c,r))continue;
+    const dot=svE("circle",{cx:X(c,r),cy:Y(r),r:sz*.3,fill:"var(--moveGlow)",opacity:.85,style:"cursor:pointer",class:"movedot"});
+    dot.addEventListener("click",e=>{e.stopPropagation();tap(c,r);});g.appendChild(dot);}
+  /* bank: arrows just beyond the far edge */
+  if(sc){const u=s.b.get(G.selected),me=u.o,gr=me===0?-1:ROWS,col=cssv(me===0?"--A":"--B");let n=0,sx=0;
+    for(let c=0;c<9;c++){if(!inside(c,gr,true))continue;const x=X(c,gr),y=Y(gr);n++;sx+=x;
+      const gh=svE("polygon",{points:hP(x,y,sz*0.82),fill:col,"fill-opacity":.22,stroke:col,"stroke-width":2,"stroke-dasharray":"4 3",style:"cursor:pointer",class:"bankghost"});
+      gh.addEventListener("click",e=>{e.stopPropagation();bank(sc);});g.appendChild(gh);
+      const ar=svE("text",{x,y:y+sz*.3,"text-anchor":"middle","font-size":sz*.8,"font-weight":700,fill:col,"pointer-events":"none"});ar.textContent=me===0?"⬆":"⬇";g.appendChild(ar);}
+    const mid=sx/Math.max(1,n),lab=svE("text",{x:mid,y:me===0?Y(gr)-sz*1.05:Y(gr)+sz*1.45,"text-anchor":"middle","font-family":"var(--disp)","font-size":sz*.5,"font-weight":700,fill:col,"pointer-events":"none"});
+    lab.textContent=`Tap an arrow to bank +${u.n}`;g.appendChild(lab);}
+  return {sc,kam};}
 
 function render(){const s=G.state;
-  document.getElementById("scoreA").textContent=s.s[0]+" / "+VPT;document.getElementById("scoreB").textContent=s.s[1]+" / "+VPT;
-  document.getElementById("tilesA").textContent=tAlive(s,0)+" tiles · need "+(VPT-s.s[0]);document.getElementById("tilesB").textContent=tAlive(s,1)+" tiles · need "+(VPT-s.s[1]);
-  const ban=document.getElementById("turnBanner");ban.className="turnbanner "+(s.turn===0?"A":"B");
-  let who=s.turn===0?"Player A":"Player B";if(G.mode==="ai"&&s.turn!==G.aiSide)who+=" (AI)";
-  document.getElementById("turnText").textContent=who;
-  document.getElementById("thinkingText").textContent=G.aiThinking?"thinking…":"";
-  document.getElementById("undoBtn").style.display=G.history.length&&!G.aiThinking?"inline-block":"none";
-  document.getElementById("turnCount").textContent="Turn "+Math.ceil((s.ply+1)/2);
-  renderBoard();renderSel();renderLog();if(G.mode==="tablet")renderTabletPanels();}
+  $("scoreA").textContent=s.s[0]+" / "+VPT;$("scoreB").textContent=s.s[1]+" / "+VPT;
+  $("tilesA").textContent=tAlive(s,0)+(tAlive(s,0)===1?" tile":" tiles")+" · need "+(VPT-s.s[0]);$("tilesB").textContent=tAlive(s,1)+(tAlive(s,1)===1?" tile":" tiles")+" · need "+(VPT-s.s[1]);
+  $("whoA").textContent=(G.mode==="ai"?(G.aiSide===0?"You":"Computer"):"Player A")+(s.fp===0?" · 1st":"");
+  $("whoB").textContent=(G.mode==="ai"?(G.aiSide===1?"You":"Computer"):"Player B")+(s.fp===1?" · 1st":"");
+  const ban=$("turnBanner");ban.className="turnbanner "+(s.turn===0?"A":"B");
+  $("turnText").textContent=G.mode==="ai"?(s.turn===G.aiSide?"Your turn":"Computer"):pName(s.turn);
+  $("thinkingText").textContent=G.aiThinking?"thinking…":"";
+  $("undoBtn").style.display=G.history.length&&!G.aiThinking?"inline-block":"none";
+  $("turnCount").textContent="Turn "+Math.ceil((s.ply+1)/2);
+  renderBoard();renderSel();renderLog();renderFsBar();if(G.mode==="tablet")renderTabletPanels();}
 
-function renderBoard(){const svg=document.getElementById("boardSvg");svg.innerHTML="";
-  const Wt=OX+HW/2+8*HW+HW/2+HW/2+30,Ht=cY(ROWS-1)+SZ+30;
-  svg.setAttribute("viewBox",`0 0 ${Math.round(Wt)} ${Math.round(Ht)}`);
-  const g=svE("g",{});svg.appendChild(g);const s=G.state,st=getComputedStyle(document.documentElement);
-  let hl={move:new Set(),attack:new Set(),combine:new Set()};
-  if(G.selected&&!G.aiThinking){for(const a of legal(s)){if(a.from!==G.selected)continue;
-    if(a.type==="move")hl.move.add(a.to);if(a.type==="attack")hl.attack.add(a.to);if(a.type==="combine")hl.combine.add(a.to);}}
-  for(let r=0;r<ROWS;r++){const n=colsR(r);for(let c=0;c<n;c++){
-    const X=cX(c,r),Y=cY(r),rank=ROWS-r;
-    let fill=st.getPropertyValue("--cell").trim();
-    if(rank===13)fill=st.getPropertyValue("--Atint").trim();else if(rank===1)fill=st.getPropertyValue("--Btint").trim();
-    else if(rank>=6&&rank<=8)fill=st.getPropertyValue("--mid").trim();
-    g.appendChild(svE("polygon",{points:hP(X,Y,SZ),fill,stroke:st.getPropertyValue("--cellstroke").trim(),"stroke-width":1.2})).addEventListener("click",()=>onClick(c,r));}}
-  if(G.mode!=="tablet"){for(let r=0;r<ROWS;r++){const t=svE("text",{x:OX-16,y:cY(r)+4,"text-anchor":"middle","font-family":"var(--mono)","font-size":9,fill:"var(--soft)",opacity:.5});t.textContent=ROWS-r;g.appendChild(t);}}
-  const tX=cX(4,0),tY=cY(0)-SZ-8;g.appendChild(svE("path",{d:`M ${tX} ${tY-8} l -6 8 12 0 z`,fill:st.getPropertyValue("--A").trim()}));
-  const bX=cX(4,ROWS-1),bY=cY(ROWS-1)+SZ+18;g.appendChild(svE("path",{d:`M ${bX} ${bY+8} l -6 -8 12 0 z`,fill:st.getPropertyValue("--B").trim()}));
-  // tiles
+function renderBoard(){const svg=$("boardSvg");svg.innerHTML="";
+  const Wt=OX+HW/2+8*HW+HW/2+HW/2+30,Ht=cY(ROWS-1)+SZ+50;
+  const fsm=document.body.classList.contains("fs")&&G.mode!=="tablet";
+  /* full screen: trim the side margins so the board is as large as possible */
+  svg.setAttribute("viewBox",fsm?`${Math.round(OX-6)} 2 ${Math.round(9*HW+12)} ${Math.round(Ht-2)}`:`0 0 ${Math.round(Wt)} ${Math.round(Ht)}`);
+  const g=svE("g",{});svg.appendChild(g);const s=G.state;
+  const cell=cssv("--cell"),At=cssv("--Atint"),Bt=cssv("--Btint"),mid=cssv("--mid"),cst=cssv("--cellstroke");
+  for(let r=0;r<ROWS;r++){const n=colsR(r);for(let c=0;c<n;c++){const rank=ROWS-r;
+    let fill=cell;if(rank===13)fill=At;else if(rank===1)fill=Bt;else if(rank>=6&&rank<=8)fill=mid;
+    g.appendChild(svE("polygon",{points:hP(cX(c,r),cY(r),SZ),fill,stroke:cst,"stroke-width":1.2,"data-hex":hx(K(c,r))})).addEventListener("click",()=>onClick(c,r));}}
+  if(G.mode!=="tablet"&&!fsm){for(let r=0;r<ROWS;r++){const t=svE("text",{x:OX-16,y:cY(r)+4,"text-anchor":"middle","font-family":"var(--mono)","font-size":9,fill:"var(--soft)",opacity:.5});t.textContent=ROWS-r;g.appendChild(t);}}
   for(const[k,u]of s.b){const[c,r]=P(k),X=cX(c,r),Y=cY(r),isA=u.o===0;
-    const fill=st.getPropertyValue(isA?"--A":"--B").trim(),stroke=st.getPropertyValue(isA?"--Adk":"--Bdk").trim();
-    const p=svE("polygon",{points:hP(X,Y,SZ*0.78),fill,stroke,"stroke-width":2,class:"hextile"});
+    const fill=cssv(isA?"--A":"--B"),stroke=cssv(isA?"--Adk":"--Bdk");
+    const p=svE("polygon",{points:hP(X,Y,SZ*0.78),fill,stroke,"stroke-width":2,class:"hextile","data-hex":hx(k)});
     p.addEventListener("click",e=>{e.stopPropagation();onClick(c,r);});g.appendChild(p);
     if(u.t==="F")g.appendChild(svE("polygon",{points:hP(X,Y,SZ*0.78,30),fill:"none",stroke,"stroke-width":1.5,"pointer-events":"none"}));
-    const flipLabel=G.mode==="tablet"&&u.o===1;
     const lb=svE("text",{x:X,y:Y+4,"text-anchor":"middle","font-family":"var(--mono)","font-size":10,fill:"#fff","font-weight":700,"pointer-events":"none"});
-    if(flipLabel)lb.setAttribute("transform",`rotate(180 ${X} ${Y})`);
+    if(G.mode==="tablet"&&u.o===1)lb.setAttribute("transform",`rotate(180 ${X} ${Y})`);
     lb.textContent=uL(u);g.appendChild(lb);}
-  // highlights ON TOP
-  if(G.selected&&!G.aiThinking&&s.b.has(G.selected)){const[sc2,sr]=P(G.selected);
-    g.appendChild(svE("polygon",{points:hP(cX(sc2,sr),cY(sr),SZ*0.92),fill:"none",stroke:"#fff","stroke-width":3,"pointer-events":"none"}));}
-  for(const dk of hl.attack){const[c,r]=P(dk),X=cX(c,r),Y=cY(r);
-    g.appendChild(svE("polygon",{points:hP(X,Y,SZ*0.92),fill:"rgba(192,57,43,.25)",stroke:"var(--atkGlow)","stroke-width":3,"pointer-events":"none"}));
-    g.appendChild(svE("circle",{cx:X,cy:Y,r:SZ*.28,fill:"var(--atkGlow)",opacity:.3,"pointer-events":"none"}));}
-  for(const dk of hl.combine){if(hl.attack.has(dk))continue;const[c,r]=P(dk),X=cX(c,r),Y=cY(r);
-    g.appendChild(svE("polygon",{points:hP(X,Y,SZ*0.92),fill:"rgba(58,111,176,.2)",stroke:"var(--combGlow)","stroke-width":2.5,"stroke-dasharray":"4 3","pointer-events":"none"}));}
-  for(const dk of hl.move){if(s.b.has(dk))continue;const[c,r]=P(dk),X=cX(c,r),Y=cY(r);
-    const dot=svE("circle",{cx:X,cy:Y,r:6,fill:"var(--moveGlow)",opacity:.85,style:"cursor:pointer"});
-    dot.addEventListener("click",e=>{e.stopPropagation();onClick(c,r);});g.appendChild(dot);}
-  /* BANK OVERLAY: massive bar across the board — impossible to miss */
-  if(G.selected&&!G.aiThinking){
-    const sActs=legal(s).filter(a=>a.from===G.selected&&a.type==="score");
-    if(sActs.length){
-      const scoreAct=sActs[0],u=s.b.get(G.selected),pts=u?u.n:1,me=u?u.o:0;
-      const barH=SZ*0.8,barW=Wt*0.5,barX=(Wt-barW)/2;
-      const barY=me===0?5:cY(ROWS-1)+SZ*0.6;
-      const barColor=me===0?"var(--A)":"var(--B)";
-      const rect=svE("rect",{x:barX,y:barY,width:barW,height:barH,rx:8,fill:barColor,opacity:.75,style:"cursor:pointer"});
-      rect.addEventListener("click",e=>{e.stopPropagation();doAct(scoreAct);});
-      g.appendChild(rect);
-      /* Text */
-      const txt=svE("text",{x:Wt/2,y:barY+barH/2+5,"text-anchor":"middle","font-family":"var(--disp)","font-size":11,fill:"#fff","font-weight":700,"pointer-events":"none"});
-      txt.textContent=`⬆ TAP TO BANK ${pts} POINT${pts>1?"S":""}`;
-      g.appendChild(txt);
-    }}
   if(G.lastAction){const lk=G.lastAction.to||G.lastAction.from;if(lk&&s.b.has(lk)){const[c,r]=P(lk);
-    g.appendChild(svE("circle",{cx:cX(c,r),cy:cY(r)-SZ*.55,r:3,fill:"#e0a43a",opacity:.9,"pointer-events":"none"}));}}}
+    g.appendChild(svE("circle",{cx:cX(c,r),cy:cY(r)-SZ*.55,r:3,fill:"#e0a43a",opacity:.9,"pointer-events":"none"}));}}
+  const ov=drawOverlays(g,s,cX,cY,SZ,onClick,a=>doAct(a),(c,r,ghost)=>ghost?c<colsR(r):onB(c,r));
+  /* direction markers (hidden while the bank arrows are showing on that edge) */
+  const bankSide=ov.sc?s.b.get(G.selected).o:-1;
+  if(bankSide!==0){const tX=cX(4,0),tY=cY(0)-SZ-8;g.appendChild(svE("path",{d:`M ${tX} ${tY-8} l -6 8 12 0 z`,fill:cssv("--A"),"pointer-events":"none"}));}
+  if(bankSide!==1){const bX=cX(4,ROWS-1),bY=cY(ROWS-1)+SZ+18;g.appendChild(svE("path",{d:`M ${bX} ${bY+8} l -6 -8 12 0 z`,fill:cssv("--B"),"pointer-events":"none"}));}}
 
-function buildActionButtons(bar){bar.innerHTML="";
-  if(!G.selected||!G.state.b.has(G.selected))return null;
-  const u=G.state.b.get(G.selected);
-  const acts=legal(G.state).filter(a=>a.from===G.selected);
-  const sc=acts.find(a=>a.type==="score");
-  if(sc){const b=document.createElement("button");b.className="abtn score-btn";b.textContent=`⬆ Bank ${u.n} point${u.n>1?"s":""}`;b.onclick=()=>doAct(sc);bar.appendChild(b);}
-  for(const a of acts.filter(a=>a.type==="attack")){const tgt=G.state.b.get(a.to);if(!tgt)continue;
-    const tn2=tgt.t==="S"?"S":tgt.t==="R"?"R":"F";
-    const b=document.createElement("button");b.className="abtn atk-btn";b.textContent=`⚔ Attack ${tn2}-${tgt.n} at ${a.to}`;b.onclick=()=>doAct(a);bar.appendChild(b);}
-  const kam=acts.find(a=>a.type==="kamikaze");
-  if(kam){const b=document.createElement("button");b.className="abtn kamikaze";b.textContent="💥 Detonate";
-    let armed=false;b.onclick=()=>{if(armed){doAct(kam);}else{armed=true;b.textContent="💥 TAP AGAIN to confirm";b.style.background="var(--atkGlow)";b.style.color="#fff";setTimeout(()=>{armed=false;b.textContent="💥 Detonate";b.style.background="";b.style.color="";},3000);}};bar.appendChild(b);}
-  return u;}
+/* What the player can do with the current selection, in words */
+function hintText(){if(!G)return"";const s=G.state;
+  if(G.aiThinking)return"The computer is thinking…";
+  if(G.mode==="ai"&&s.turn!==G.aiSide)return"";
+  if(G.armed)return"Tap the Fighter again to detonate. Tap anywhere else to cancel.";
+  if(!G.selected||!s.b.has(G.selected))return"Tap one of your tiles.";
+  const acts=legal(s).filter(a=>a.from===G.selected),parts=[];
+  if(acts.some(a=>a.type==="move"))parts.push("green dot: move");
+  if(acts.some(a=>a.type==="attack"))parts.push("red: attack");
+  if(acts.some(a=>a.type==="combine"))parts.push("blue: stack");
+  if(acts.some(a=>a.type==="score"))parts.push("arrows past the edge: bank");
+  if(acts.some(a=>a.type==="kamikaze"))parts.push("tap the Fighter again: detonate");
+  return parts.length?"Tap a "+parts.join(" · "):"This unit has no moves right now.";}
 
-function renderSel(){const box=document.getElementById("selInfo"),bar=document.getElementById("actionBar");
-  const u=buildActionButtons(bar);
-  if(!u){box.innerHTML='<span class="none">Tap one of your tiles.</span>';return;}
-  const tn=u.t==="S"?"Single":u.t==="R"?"Runner":"Fighter";
-  box.innerHTML=`<b>${tn}-${u.n}</b> · ${u.o===0?"A":"B"} · spd ${spd(u)} · str ${str(u)}`;}
+function renderSel(){const box=$("selInfo"),hint=$("selHint");
+  const u=G.selected&&G.state.b.get(G.selected);
+  box.innerHTML=u?`<b>${uName(u)}</b> · speed ${spd(u)} · strength ${str(u)}`:'<span class="none">No unit selected.</span>';
+  hint.textContent=hintText();}
 
-function renderTabletPanels(){
-  const s=G.state;
-  const cfg=[{player:0,panel:"panelA",score:"tpScoreA",status:"tpStatusA",actions:"tpActionsA"},
-             {player:1,panel:"panelB",score:"tpScoreB",status:"tpStatusB",actions:"tpActionsB"}];
-  for(const c of cfg){
-    const active=s.turn===c.player;
-    document.getElementById(c.panel).classList.toggle("dim",!active);
-    document.getElementById(c.score).textContent=s.s[c.player]+" / "+VPT;
-    document.getElementById(c.status).textContent=active?"Your turn — need "+(VPT-s.s[c.player])+" more":"Waiting…";
-    const bar=document.getElementById(c.actions);
-    if(active){
-      const u=buildActionButtons(bar);
-      if(!u)bar.innerHTML='<div class="tp-empty">Tap one of your tiles on the board.</div>';
-    }else{bar.innerHTML="";}
-  }
-}
+function renderTabletPanels(){const s=G.state;
+  for(const p of [0,1]){const L=p===0?"A":"B",active=s.turn===p;
+    $("panel"+L).classList.toggle("dim",!active);
+    $("tpScore"+L).textContent=s.s[p]+" / "+VPT+(s.fp===p?" · 1st":"");
+    $("tpStatus"+L).textContent=active?"Your turn — need "+(VPT-s.s[p])+" more":"Waiting…";
+    $("tpActions"+L).innerHTML=active?`<div class="tp-empty">${hintText()}</div>`:"";}}
 
-function renderLog(){const log=document.getElementById("log");log.innerHTML="";const items=G.log.slice(-10);
+function renderFsBar(){if(!G)return;const s=G.state;
+  $("fsA").textContent=s.s[0];$("fsB").textContent=s.s[1];
+  $("fsTurn").className="fs-turn "+(s.turn===0?"A":"B");
+  $("fsTurnText").textContent=G.aiThinking?"Computer thinking…":(G.mode==="ai"?(s.turn===G.aiSide?"Your turn":"Computer"):pName(s.turn));
+  $("fsHint").textContent=hintText();
+  $("fsUndo").disabled=!G.history.length||G.aiThinking;}
+
+function renderLog(){const log=$("log");log.innerHTML="";const items=G.log.slice(-12);
   if(!items.length){log.innerHTML='<div style="color:var(--soft)">No moves yet.</div>';return;}
-  for(let i=0;i<items.length;i++){const d=document.createElement("div");d.textContent=items[i];if(i===items.length-1)d.style.fontWeight="600";log.appendChild(d);}log.scrollTop=log.scrollHeight;}
+  for(let i=0;i<items.length;i++){const d=document.createElement("div");d.textContent=items[i];log.appendChild(d);}log.scrollTop=log.scrollHeight;}
 
-function onClick(c,r){if(G.aiThinking)return;const s=G.state,k=K(c,r),u=s.b.get(k);
-  document.getElementById("typeChooser").style.display="none";
-  if(G.selected===k){G.selected=null;render();return;}
+/* ================= INPUT ================= */
+function onClick(c,r){if(!G||G.aiThinking||REPLAY)return;if(G.mode==="ai"&&G.state.turn!==G.aiSide)return;
+  const s=G.state,k=K(c,r),u=s.b.get(k);hideTC();
+  if(G.selected===k){
+    const kam=legal(s).find(a=>a.from===k&&a.type==="kamikaze");
+    if(kam){if(G.armed===k){G.armed=null;doAct(kam);return;}G.armed=k;vib(15);render();return;}
+    G.selected=null;G.armed=null;render();return;}
+  G.armed=null;
   if(G.selected){const acts=legal(s).filter(a=>a.from===G.selected);
-    /* Bank: if selected unit can score and user taps any cell on the scoring edge row */
-    const sc=acts.find(a=>a.type==="score");
-    if(sc){const su=s.b.get(G.selected);
-      if(su){const edgeRow=su.o===0?0:ROWS-1;if(r===edgeRow){doAct(sc);return;}}}
     const mv=acts.find(a=>a.type==="move"&&a.to===k);if(mv){doAct(mv);return;}
     const at=acts.find(a=>a.type==="attack"&&a.to===k);if(at){doAct(at);return;}
     const cbs=acts.filter(a=>a.type==="combine"&&a.to===k);
-    if(cbs.length===1){doAct(cbs[0]);return;}if(cbs.length>1){openTC(cbs,c,r);return;}}
-  if(u&&u.o===s.turn){G.selected=k;render();return;}G.selected=null;render();}
+    if(cbs.length===1){doAct(cbs[0]);return;}
+    if(cbs.length>1){openTC($("boardSvg"),cX(c,r),cY(r),G.mode==="tablet"&&s.turn===1,ch=>doAct(cbs.find(a=>a.ch===ch)));return;}}
+  if(u&&u.o===s.turn){G.selected=k;render();return;}
+  G.selected=null;render();}
 
-function openTC(cbs,c,r){const ch=document.getElementById("typeChooser"),svg=document.getElementById("boardSvg"),rect=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
-  const sx=rect.width/vb.width;ch.style.left=(rect.left+window.scrollX+cX(c,r)*sx-60)+"px";ch.style.top=(rect.top+window.scrollY+cY(r)*(rect.height/vb.height)-70)+"px";ch.style.display="block";
-  ch.style.transform=(G.mode==="tablet"&&G.state.turn===1)?"rotate(180deg)":"none";
-  document.getElementById("tcRunner").onclick=()=>{ch.style.display="none";doAct(cbs.find(a=>a.ch==="R"));};
-  document.getElementById("tcFighter").onclick=()=>{ch.style.display="none";doAct(cbs.find(a=>a.ch==="F"));};}
+/* Runner/Fighter chooser, shown right next to the stack on the board */
+function openTC(svg,x,y,flip,pick){const ch=$("typeChooser"),rect=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
+  const px=rect.left+x*rect.width/vb.width,py=rect.top+y*rect.height/vb.height;
+  ch.style.display="block";ch.style.transform=flip?"rotate(180deg)":"none";
+  const w=ch.offsetWidth,h=ch.offsetHeight;
+  let left=px-w/2,top=py-h-18;if(top<8)top=py+18;
+  left=Math.max(8,Math.min(window.innerWidth-w-8,left));top=Math.max(8,Math.min(window.innerHeight-h-8,top));
+  ch.style.left=left+"px";ch.style.top=top+"px";
+  $("tcRunner").onclick=e=>{e.stopPropagation();hideTC();pick("R");};
+  $("tcFighter").onclick=e=>{e.stopPropagation();hideTC();pick("F");};}
+function hideTC(){$("typeChooser").style.display="none";}
 
-function actTxt(a,s){const p=s.turn===0?"A":"B";
-  if(a.type==="move")return`${p}: ${a.from}→${a.to}`;if(a.type==="score"){const u=s.b.get(a.from);return`${p}: bank ${u?u.n:"?"}pt!`;}
-  if(a.type==="combine")return`${p}: build ${a.ch==="R"?"runner":"fighter"} ${a.to}`;
-  if(a.type==="attack"){const t=s.b.get(a.to);return`${p}: atk ${t?(t.t+"-"+t.n):""} ${a.to}`;}
-  if(a.type==="kamikaze")return`${p}: 💥 ${a.from}`;return"";}
+/* ================= ACTIONS ================= */
+function actTxt(a,s){const p=pShort(s.turn),u=s.b.get(a.from);
+  if(a.type==="move")return`${p}: ${uName(u)} ${hx(a.from)}→${hx(a.to)}`;
+  if(a.type==="score")return`${p}: ${uName(u)} banks +${u.n}`;
+  if(a.type==="combine"){const v=s.b.get(a.to);return`${p}: stacks ${a.ch==="R"?"Runner":"Fighter"}-${u.n+v.n} at ${hx(a.to)}`;}
+  if(a.type==="attack"){const t=s.b.get(a.to);return`${p}: ${uName(u)} takes ${uName(t)} at ${hx(a.to)}`;}
+  if(a.type==="kamikaze"){const[c,r]=P(a.from);let en=0,own=u.n;
+    for(const[nc,nr]of nbb(c,r)){const t=s.b.get(K(nc,nr));if(t){if(t.o===u.o)own+=t.n;else en+=t.n;}}
+    return`${p}: 💥 ${uName(u)} detonates at ${hx(a.from)} (−${en} enemy, −${own} own)`;}
+  return"";}
 
 function doAct(a){G.history.push({state:G.state,selected:G.selected,logLen:G.log.length,la:G.lastAction});
-  /* Record for replay */
   G.tape.push({state:G.state,action:a,text:actTxt(a,G.state)});
   const isK=a.type==="kamikaze",isSc=a.type==="score",kPos=isK?a.from:null,prev=G.state.s.slice();
-  G.log.push(actTxt(a,G.state));G.state=applyA(G.state,a);G.selected=null;G.lastAction=a;
-  document.getElementById("typeChooser").style.display="none";
-  if(isSc)flashSc(G.state.s[0]>prev[0]?0:1);
-  if(isK){playEx(kPos);setTimeout(afterAct,aDelay()*2);}else afterAct();}
+  G.log.push(actTxt(a,G.state));G.state=applyA(G.state,a);G.selected=null;G.armed=null;G.lastAction=a;
+  hideTC();
+  if(isSc){flashSc(G.state.s[0]>prev[0]?0:1);vib([30,40,30]);}
+  else if(a.type==="attack")vib(25);
+  if(isK){vib([80,40,160]);playEx(kPos);setTimeout(afterAct,BOOM_MS);}else afterAct();}
 
 function afterAct(){render();const w=winBySc(G.state);if(w!==null){endGame(w,"target");return;}
-  if(isEnd(G.state)){endGame(tbk(G.state),"tiebreak");return;}
-  /* if current player has no legal moves but game isn't over, skip their turn */
+  if(isEnd(G.state)){const s=G.state;endGame(tbk(s),tAlive(s,0)===0||tAlive(s,1)===0?"wipeout":"stuck");return;}
+  /* a player with tiles but no legal action skips the turn */
   if(legal(G.state).length===0){
-    G.log.push((G.state.turn===0?"A":"B")+": no tiles — skipped");
+    G.log.push(pShort(G.state.turn)+": no legal move — turn skipped");
     G.state={b:G.state.b,s:G.state.s,turn:G.state.turn^1,ply:G.state.ply+1,fp:G.state.fp};
-    render();maybeAI();return;}
-  maybeAI();}
+    saveCur();render();maybeAI();return;}
+  saveCur();maybeAI();}
 
-function flashSc(p){const box=document.getElementById(p===0?"scoreboxA":"scoreboxB");box.classList.add("flash");setTimeout(()=>box.classList.remove("flash"),400);}
-function playEx(k){const[c,r]=P(k),X=cX(c,r),Y=cY(r),svg=document.getElementById("boardSvg");
-  [k,...nb(c,r).filter(([nc,nr])=>onB(nc,nr)).map(([nc,nr])=>K(nc,nr))].forEach(ak=>{const[ac,ar]=P(ak);
-    svg.appendChild(svE("polygon",{points:hP(cX(ac,ar),cY(ar),SZ),fill:"#ff4422",opacity:1,class:"flash-hex","pointer-events":"none"}));});
-  svg.appendChild(svE("circle",{cx:X,cy:Y,r:0,fill:"none",stroke:"#ff6600","stroke-width":4,class:"explosion"}));
-  svg.appendChild(svE("circle",{cx:X,cy:Y,r:0,fill:"#ffaa00",opacity:.5,class:"explosion"}));}
+function flashSc(p){const box=$(p===0?"scoreboxA":"scoreboxB");box.classList.add("flash");setTimeout(()=>box.classList.remove("flash"),400);}
+function playEx(k){const[c,r]=P(k);
+  boom($("boardSvg"),cX(c,r),cY(r),SZ,[[c,r],...nbb(c,r)].map(([bc,br])=>[cX(bc,br),cY(br)]));}
+/* Detonation effect: blast hexes burn out, a white core flashes, shock rings and debris fly, the board shakes */
+const BOOM_MS=1150;
+function boom(svg,X,Y,s,hexes){const g=svE("g",{"pointer-events":"none"});svg.appendChild(g);
+  hexes.forEach(([x,y],i)=>{const p=svE("polygon",{points:hP(x,y,s),class:"bx-hex",fill:"#ff9a1f"});p.style.animationDelay=(i?60+i*25:0)+"ms";g.appendChild(p);});
+  let defs=svg.querySelector("defs");if(!defs){defs=svE("defs",{});svg.insertBefore(defs,svg.firstChild);}
+  if(!svg.querySelector("#bxGrad")){const gr=svE("radialGradient",{id:"bxGrad"});
+    [["0%","#fffbe6",1],["35%","#ffd34d",1],["70%","#ff6a1a",.85],["100%","#c0261a",0]].forEach(([o,c,a])=>gr.appendChild(svE("stop",{offset:o,"stop-color":c,"stop-opacity":a})));defs.appendChild(gr);}
+  const fire=svE("circle",{cx:X,cy:Y,r:s*2.6,fill:"url(#bxGrad)",class:"bx bx-core"});g.appendChild(fire);
+  [["#fff2a8",3.5,0],["#ff8c1a",3,120],["#d9341c",2.5,240]].forEach(([col,w,d])=>{
+    const ring=svE("circle",{cx:X,cy:Y,r:s*4.2,fill:"none",stroke:col,"stroke-width":w,class:"bx bx-ring"});ring.style.animationDelay=d+"ms";g.appendChild(ring);});
+  for(let i=0;i<16;i++){const a=Math.PI*2*i/16+Math.random()*.4,dist=s*(2.2+Math.random()*2.4),sz=s*(.12+Math.random()*.16);
+    const d=svE("polygon",{points:hP(X,Y,sz),fill:i%3?"#ff7a1a":"#3a2a20",class:"bx bx-deb"});
+    d.style.setProperty("--dx",(Math.cos(a)*dist).toFixed(1)+"px");d.style.setProperty("--dy",(Math.sin(a)*dist).toFixed(1)+"px");d.style.setProperty("--rt",(Math.random()*720-360).toFixed(0)+"deg");
+    d.style.animationDelay=(40+Math.random()*80)+"ms";g.appendChild(d);}
+  const host=svg.parentElement;host.classList.remove("bx-shake");void host.offsetWidth;host.classList.add("bx-shake");setTimeout(()=>host.classList.remove("bx-shake"),600);}
 
-function undo(){if(!G.history.length||G.aiThinking)return;
-  if(G.mode==="ai"&&G.history.length>=2){const p=G.history[G.history.length-2];G.history.length-=2;G.tape.length=Math.max(0,G.tape.length-2);G.state=p.state;G.selected=p.selected;G.log.length=p.logLen;G.lastAction=p.la;}
-  else{const p=G.history.pop();G.tape.pop();G.state=p.state;G.selected=p.selected;G.log.length=p.logLen;G.lastAction=p.la;}render();}
+function undo(){if(!G||G.isTut||!G.history.length||G.aiThinking)return;
+  if(G.mode==="ai"&&G.history.length>=2&&G.state.turn===G.aiSide){const p=G.history[G.history.length-2];G.history.length-=2;G.tape.length=Math.max(1,G.tape.length-2);G.state=p.state;G.log.length=p.logLen;G.lastAction=p.la;}
+  else{const p=G.history.pop();G.tape.pop();G.state=p.state;G.log.length=p.logLen;G.lastAction=p.la;}
+  G.selected=null;G.armed=null;saveCur();render();maybeAI();}
 
+/* ================= SAVE / RESUME ================= */
+function packState(s){return{board:Array.from(s.b.entries()),score:s.s,turn:s.turn,ply:s.ply,fp:s.fp};}
+function unpackState(t){return{b:new Map(t.board),s:t.score.slice(),turn:t.turn,ply:t.ply,fp:t.fp||0};}
+function saveCur(){if(!G||G.isTut||G.over)return;
+  try{localStorage.setItem("cr_current",JSON.stringify({v:1,mode:G.mode,aiSide:G.aiSide,aiDiff:G.aiDiff,log:G.log,
+    state:packState(G.state),tape:G.tape.map(t=>({text:t.text,action:t.action||null,...packState(t.state)})),
+    hist:G.history.map(h=>h.logLen),saved:Date.now()}));}catch(e){}}
+function loadCur(){try{const d=JSON.parse(localStorage.getItem("cr_current")||"null");return d&&d.v===1?d:null;}catch(e){return null;}}
+function clearCur(){try{localStorage.removeItem("cr_current");}catch(e){}}
+function resumeGame(){const d=loadCur();if(!d)return;
+  const tape=d.tape.map(t=>({state:unpackState(t),action:t.action,text:t.text}));
+  const hist=tape.slice(1).map((t,i)=>({state:t.state,selected:null,logLen:d.hist[i]??0,la:null}));
+  G={state:unpackState(d.state),mode:d.mode,aiSide:d.aiSide,aiDiff:d.aiDiff,selected:null,armed:null,aiThinking:false,
+    log:d.log,history:hist,lastAction:null,isTut:false,tape,lastTape:null};
+  showGameScreen();render();maybeAI();}
+
+/* ================= AI ================= */
 /* === AI WORKER: search runs off the main thread so the UI never freezes === */
 const AI_FNS=[colsR,onB,K,P,nb,_nb,nbb,str,spd,legal,legalTact,hotHexes,defMoves,applyA,winBySc,adjToEdge,evalFast,sortByOrd,moveOrd,aiNov,aiNorm,posKey,mvKey,timedSearch,aiVHard,aiMed];
 let AIW=null,AIW_ok=null,AIW_req=0,AIW_pending=null;
@@ -947,14 +1090,14 @@ function aiWorker(){
     AIW_ok=true;return AIW;
   }catch(e){AIW_ok=false;return null;}}
 
-function maybeAI(){if(G.mode!=="ai"||G.state.turn===G.aiSide)return;G.aiThinking=true;render();
+
+function maybeAI(){if(!G||G.over||G.mode!=="ai"||G.state.turn===G.aiSide)return;G.aiThinking=true;render();
   const game=G,ply=G.state.ply,diff=G.aiDiff,minWait=aDelay()+120,t0=Date.now();
   const finish=a=>{
-    /* Ignore stale results (new game, undo, or replay started while thinking) */
     if(G!==game||!G.aiThinking||G.state.ply!==ply)return;
     const wait=Math.max(0,minWait-(Date.now()-t0));
     setTimeout(()=>{if(G!==game||G.state.ply!==ply)return;
-      G.aiThinking=false;if(a)doAct(a);else endGame(tbk(G.state),"tiebreak");},wait);};
+      G.aiThinking=false;if(a)doAct(a);else afterAct();},wait);};
   const w=aiWorker();
   if(w){
     const id=++AIW_req;
@@ -963,205 +1106,230 @@ function maybeAI(){if(G.mode!=="ai"||G.state.turn===G.aiSide)return;G.aiThinking
     const onMsg=e=>{if(e.data.id!==id)return;
       if(e.data.err){console.warn("[AI worker]",e.data.err);fallback();return;}
       w.removeEventListener("message",onMsg);clearTimeout(guard);AIW_pending=null;finish(e.data.a);};
-    /* If the worker fails to load or hangs, fall back to the main thread */
     const guard=setTimeout(fallback,8000);
     AIW_pending=fallback;
     w.addEventListener("message",onMsg);
     try{w.postMessage({id,diff,state:G.state});}
     catch(e){clearTimeout(guard);w.removeEventListener("message",onMsg);AIW_ok=false;AIW=null;
       setTimeout(()=>finish(AIF[diff](G.state)),minWait);}
-  }else{
-    setTimeout(()=>finish(AIF[diff](G.state)),minWait);}}
+  }else{setTimeout(()=>finish(AIF[diff](G.state)),minWait);}}
 
+/* ================= GAME END ================= */
 function confetti(){for(let i=0;i<25;i++){const d=document.createElement("div");d.className="confetti";
   d.style.cssText=`left:${Math.random()*100}vw;top:-20px;width:${5+Math.random()*7}px;height:${5+Math.random()*7}px;background:hsl(${Math.random()*360},80%,60%);border-radius:${Math.random()>.5?"50%":"2px"};animation:confettiFall ${1.5+Math.random()*2}s linear forwards;animation-delay:${Math.random()*.5}s;`;
   document.body.appendChild(d);setTimeout(()=>d.remove(),4000);}}
 
-function endGame(w,how){
-  /* Save final state to tape */
-  G.tape.push({state:G.state,action:null,text:(w===0?"A":"B")+" wins"});
-  /* Save tape for replay */
+function endText(w,how,s){const who=pName(w),l=w^1;
+  const why=s.s[0]!==s.s[1]?`more points (${s.s[w]}–${s.s[l]})`:tAlive(s,0)!==tAlive(s,1)?`more tiles on the board (${tAlive(s,w)}–${tAlive(s,l)})`:"the tiebreak: the player who moved second wins a full tie";
+  if(how==="target")return`${who} reached ${VPT} points.`;
+  if(how==="wipeout")return`${pName(tAlive(s,0)===0?0:1)} ${G.mode==="ai"&&tAlive(s,G.aiSide)===0?"have":"has"} no tiles left. Decided on ${why}.`;
+  return`Neither player can act. Decided on ${why}.`;}
+
+function endGame(w,how){G.over=true;clearCur();
+  G.tape.push({state:G.state,action:null,text:pName(w)+(G.mode==="ai"&&w===G.aiSide?" win":" wins")});
   G.lastTape=G.tape.slice();
   try{localStorage.setItem("cr_lastmeta",JSON.stringify({mode:G.mode,aiSide:G.aiSide,aiDiff:G.aiDiff,winner:w,how,date:new Date().toISOString()}));
-    localStorage.setItem("cr_lastgame",JSON.stringify(G.tape.map(t=>({text:t.text,action:t.action||null,
-    board:Array.from(t.state.b.entries()),score:t.state.s,turn:t.state.turn,ply:t.state.ply,fp:t.state.fp}))));}catch(e){}
-  document.getElementById("replayBtn").style.display="inline-block";
-  render();confetti();STATS.games++;if(w===0)STATS.wA++;else STATS.wB++;saveS();showS();
-  const s=G.state,who=w===0?"Player A":"Player B";
-  document.getElementById("endTitle").textContent=who+" wins!";
-  document.getElementById("endBody").textContent=how==="target"?`${who} reached ${VPT} points!`:`${who} won on tiebreak (${s.s[0]}–${s.s[1]}, tiles ${tAlive(s,w)} vs ${tAlive(s,w^1)}).`;
-  document.getElementById("endModal").classList.add("show");}
+    localStorage.setItem("cr_lastgame",JSON.stringify(G.tape.map(t=>({text:t.text,action:t.action||null,...packState(t.state)}))));}catch(e){}
+  $("replayBtn").style.display="inline-block";
+  render();STATS.games++;if(w===0)STATS.wA++;else STATS.wB++;
+  if(G.mode==="ai"){const r=STATS.ai[G.aiDiff]||(STATS.ai[G.aiDiff]=[0,0]);if(w===G.aiSide)r[0]++;else r[1]++;}
+  saveS();showS();
+  const youLost=G.mode==="ai"&&w!==G.aiSide;if(!youLost)confetti();vib(youLost?[80]:[40,60,40,60,120]);
+  $("endTitle").textContent=G.mode==="ai"?(youLost?"The computer wins":"You win!"):pName(w)+" wins!";
+  $("endBody").textContent=endText(w,how,G.state);
+  $("endModal").classList.add("show");}
 
-/* === REPLAY SYSTEM === */
+function rematch(){const p=G;$("endModal").classList.remove("show");
+  /* swap sides; whoever moved second last time moves first now */
+  startGame({mode:p.mode,aiDiff:p.aiDiff,human:p.aiSide^1,first:p.mode==="ai"?p.state.fp:p.state.fp^1});}
+
+/* ================= FULL SCREEN ================= */
+function isStandalone(){return window.matchMedia&&matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;}
+function setFS(on){document.body.classList.toggle("fs",on);const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen,ex=document.exitFullscreen||document.webkitExitFullscreen;
+  const cur=document.fullscreenElement||document.webkitFullscreenElement;
+  if(on&&!cur){if(req){try{const pr=req.call(el);if(pr&&pr.catch)pr.catch(()=>{});}catch(e){}}
+    else if(!isStandalone())toast("On iPhone: tap Share → Add to Home Screen to play without the browser bars.",6000,"cr_iosHint");}
+  else if(!on&&cur&&ex){try{const pr=ex.call(document);if(pr&&pr.catch)pr.catch(()=>{});}catch(e){}}
+  if(G)render();}
+function toggleFS(){setFS(!document.body.classList.contains("fs"));}
+["fullscreenchange","webkitfullscreenchange"].forEach(ev=>document.addEventListener(ev,()=>{
+  if(!(document.fullscreenElement||document.webkitFullscreenElement)&&document.body.classList.contains("fs")){document.body.classList.remove("fs");if(G)render();}}));
+function toast(msg,ms,onceKey){if(onceKey){try{if(localStorage.getItem(onceKey))return;localStorage.setItem(onceKey,"1");}catch(e){}}
+  const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),ms||3000);}
+
+/* ================= REPLAY ================= */
 let REPLAY=null;
 function enterReplay(tape){
   if(!tape||!tape.length)return;
+  setFS(false);
   const norm=tape.map(t=>{
     if(t.state)return{state:t.state,text:t.text||"",action:t.action||null};
-    return{state:{b:new Map(t.board.map(([k,v])=>[k,v])),s:t.score,turn:t.turn,ply:t.ply,fp:t.fp||0},text:t.text||"",action:t.action||null};});
+    return{state:unpackState(t),text:t.text||"",action:t.action||null};});
   REPLAY={tape:norm,idx:0};
-  document.getElementById("endModal").classList.remove("show");
-  document.getElementById("setupScreen").style.display="none";
-  document.getElementById("gameScreen").style.display="block";
-  document.getElementById("replayPanel").style.display="block";
-  document.getElementById("undoBtn").style.display="none";
-  if(!G||!G.state)G={state:norm[0].state,selected:null,lastAction:null,mode:"replay",log:[],history:[],tape:[],lastTape:null,aiThinking:false,isTut:false};
-  document.getElementById("rpSlider").max=norm.length-1;
+  $("endModal").classList.remove("show");
+  $("setupScreen").style.display="none";$("tutorialScreen").style.display="none";
+  document.body.classList.remove("mode-tablet");document.body.classList.add("replaying");
+  $("gameScreen").style.display="grid";document.body.classList.add("ingame");
+  $("replayPanel").style.display="block";
+  $("undoBtn").style.display="none";
+  if(!G||!G.state)G={state:norm[0].state,selected:null,armed:null,lastAction:null,mode:"replay",log:[],history:[],tape:[],lastTape:null,aiThinking:false,isTut:false,over:true};
+  $("rpSlider").max=norm.length-1;
   renderReplayAt(0);}
 
 function renderReplayAt(idx){
   if(!REPLAY||!G)return;
   REPLAY.idx=idx;
   const t=REPLAY.tape[idx];const st=t.state;
-  const sv=G.state,ss=G.selected,sl=G.lastAction;
-  G.state=st;G.selected=null;G.lastAction=null;
+  const sv=G.state,ss=G.selected,sa=G.armed,sl=G.lastAction,th=G.aiThinking;
+  G.state=st;G.selected=null;G.armed=null;G.lastAction=null;G.aiThinking=true;
   renderBoard();
-  G.state=sv;G.selected=ss;G.lastAction=sl;
-  document.getElementById("rpSlider").value=idx;
-  document.getElementById("rpPly").textContent=idx+" / "+(REPLAY.tape.length-1);
-  const rpAction=document.getElementById("rpAction");if(rpAction)rpAction.textContent=t.text||"Start";
-  const rpLog=document.getElementById("rpLog");
+  G.state=sv;G.selected=ss;G.armed=sa;G.lastAction=sl;G.aiThinking=th;
+  $("rpSlider").value=idx;
+  $("rpPly").textContent=idx+" / "+(REPLAY.tape.length-1);
+  const rpLog=$("rpLog");
   if(rpLog){rpLog.innerHTML="";
     REPLAY.tape.forEach((entry,i)=>{
       const d=document.createElement("div");
       d.textContent=(i===0?"—  ":i+".  ")+(entry.text||"Start");
-      d.style.cssText="padding:2px 3px;border-radius:3px;cursor:pointer;";
-      if(i===idx)d.style.cssText+="background:var(--A);color:var(--panel);font-weight:600;";
+      d.className="rp-row"+(i===idx?" cur":"");
       d.addEventListener("click",()=>renderReplayAt(i));
       rpLog.appendChild(d);});
-    if(rpLog.children[idx])rpLog.children[idx].scrollIntoView({block:"nearest"});}
-  document.getElementById("rpPrev").disabled=idx<=0;
-  document.getElementById("rpStart").disabled=idx<=0;
-  document.getElementById("rpNext").disabled=idx>=REPLAY.tape.length-1;
-  document.getElementById("rpEnd").disabled=idx>=REPLAY.tape.length-1;
-  document.getElementById("scoreA").textContent=st.s[0]+" / "+VPT;
-  document.getElementById("scoreB").textContent=st.s[1]+" / "+VPT;
-  document.getElementById("tilesA").textContent=tAlive(st,0)+" tiles";
-  document.getElementById("tilesB").textContent=tAlive(st,1)+" tiles";
-  document.getElementById("turnCount").textContent="Replay · ply "+st.ply;}
+    const row=rpLog.children[idx];if(row){const top=row.offsetTop-rpLog.offsetTop;if(top<rpLog.scrollTop||top>rpLog.scrollTop+rpLog.clientHeight-20)rpLog.scrollTop=Math.max(0,top-rpLog.clientHeight/2);}}
+  $("rpPrev").disabled=idx<=0;$("rpStart").disabled=idx<=0;
+  $("rpNext").disabled=idx>=REPLAY.tape.length-1;$("rpEnd").disabled=idx>=REPLAY.tape.length-1;
+  $("scoreA").textContent=st.s[0]+" / "+VPT;$("scoreB").textContent=st.s[1]+" / "+VPT;
+  $("tilesA").textContent=tAlive(st,0)+" tiles";$("tilesB").textContent=tAlive(st,1)+" tiles";
+  $("turnCount").textContent="Review · move "+idx;}
 
 function exitReplay(){
   const hadGame=G&&G.mode!=="replay"&&G.state;
-  REPLAY=null;
-  document.getElementById("replayPanel").style.display="none";
-  if(hadGame)render();
-  else{G=null;document.getElementById("gameScreen").style.display="none";showSetup();}}
+  REPLAY=null;document.body.classList.remove("replaying");
+  $("replayPanel").style.display="none";
+  if(hadGame){document.body.classList.toggle("mode-tablet",G.mode==="tablet");$("gameScreen").style.display=G.mode==="tablet"?"flex":"grid";render();}
+  else{G=null;$("gameScreen").style.display="none";showSetup();}}
 
-function loadLastGame(){
-  try{const raw=localStorage.getItem("cr_lastgame");if(!raw)return null;return JSON.parse(raw);}catch(e){return null;}}
+function loadLastGame(){try{const raw=localStorage.getItem("cr_lastgame");if(!raw)return null;return JSON.parse(raw);}catch(e){return null;}}
 
-
-/* TUTORIAL */
+/* ================= TUTORIAL ================= */
 let TUT={step:0};
+const tS=(list,extra)=>({b:new Map(list.map(([c,r,o,n,t])=>[K(c,r),{o,n,t}])),s:[0,0],turn:0,ply:0,fp:0,...(extra||{})});
 const TS=[
-  {title:"Move a tile",text:"Tap the <b>amber tile</b>, then tap a <b>green dot</b> to move it.",
-    setup:()=>({b:new Map([[K(2,2),{o:0,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="move"},
-  {title:"Build a unit",text:"Tap one tile, then tap the adjacent one. Choose <b>Runner</b> or <b>Fighter</b> — it's permanent, and can never be un-stacked!",
-    setup:()=>({b:new Map([[K(1,2),{o:0,n:1,t:"S"}],[K(2,2),{o:0,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="combine"},
-  {title:"Fighters attack",text:"Your <b>Fighter-2</b> can destroy any enemy of lower strength. Tap your fighter, then tap the <b>red enemy</b>.",
-    setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"F"}],[K(2,1),{o:1,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
-  {title:"Singles attack singles",text:"A lone tile can destroy an adjacent <b>enemy single</b> — but nothing bigger. Tap yours, then tap the red enemy.",
-    setup:()=>({b:new Map([[K(2,2),{o:0,n:1,t:"S"}],[K(2,1),{o:1,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
-  {title:"Runners attack runners",text:"A runner can destroy an enemy <b>runner of equal or lower stack</b> — but nothing else. Tap yours, then tap the red enemy.",
-    setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"R"}],[K(2,1),{o:1,n:2,t:"R"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="attack"},
-  {title:"Detonate!",text:"A fighter can <b>detonate</b>, destroying itself and everything in the 6 surrounding hexes — enemies <i>and</i> your own tiles. Tap your fighter, then hit 💥 Detonate.",
-    setup:()=>({b:new Map([[K(2,2),{o:0,n:2,t:"F"}],[K(2,1),{o:1,n:1,t:"S"}],[K(1,2),{o:1,n:1,t:"S"}],[K(3,2),{o:0,n:1,t:"S"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="kamikaze"},
-  {title:"Score!",text:"Your <b>Runner-2</b> is near the edge. Select it and tap <b>⬆ Bank</b> to score 2 points!",
-    setup:()=>({b:new Map([[K(4,1),{o:0,n:2,t:"R"}]]),s:[0,0],turn:0,ply:0,fp:0}),done:a=>a.type==="score"},
+  {title:"Move a tile",text:"Tap your <b>amber tile</b>, then tap a <b>green dot</b> to move it there.",
+    setup:()=>tS([[2,3,0,1,"S"]]),done:a=>a.type==="move"},
+  {title:"Stack two tiles",text:"Tap one tile, then tap the <b>blue-outlined</b> tile next to it. In the bubble that pops up, choose <b>Runner</b> (fast) or <b>Fighter</b> (strong). The choice is permanent.",
+    setup:()=>tS([[1,3,0,1,"S"],[2,3,0,1,"S"]]),done:a=>a.type==="combine"},
+  {title:"Grow a stack",text:"A Single that joins a Runner-2 makes a <b>Runner-3</b>. Tap the Single, then the Runner. A stack holds at most 3 tiles.",
+    setup:()=>tS([[1,3,0,1,"S"],[2,3,0,2,"R"]]),done:a=>a.type==="combine"},
+  {title:"Runners are fast",text:"A Runner moves as many hexes as it has tiles. Tap the <b>Runner-3</b> and move it up to 3 hexes. You don't have to use all of its speed.",
+    setup:()=>tS([[2,4,0,3,"R"]]),done:a=>a.type==="move"},
+  {title:"Fighters attack",text:"A Fighter removes any enemy with lower strength. Tap your <b>Fighter-2</b>, then tap the <b>red</b> enemy. Your Fighter stays where it is.",
+    setup:()=>tS([[2,2,0,2,"F"],[2,1,1,1,"S"]]),done:a=>a.type==="attack"},
+  {title:"Singles attack Singles",text:"A Single can only remove an enemy <b>Single</b>, but a line of Singles blocks Runners. Tap yours, then the red enemy.",
+    setup:()=>tS([[2,2,0,1,"S"],[2,1,1,1,"S"]]),done:a=>a.type==="attack"},
+  {title:"Runners attack Runners",text:"A Runner can remove an enemy <b>Runner of the same size or smaller</b>, and nothing else. Any Fighter can remove a Runner.",
+    setup:()=>tS([[2,4,0,2,"R"],[2,3,1,2,"R"]]),done:a=>a.type==="attack"},
+  {title:"The Fighter-3",text:"Only a <b>Fighter-3</b> can remove a Fighter-2, and nothing can attack a Fighter-3. Tap yours, then the enemy Fighter-2.",
+    setup:()=>tS([[2,2,0,3,"F"],[2,1,1,2,"F"]]),done:a=>a.type==="attack"},
+  {title:"Detonate",text:"Tap your Fighter, then <b>tap it again</b>: the blast area turns red. <b>Tap a third time</b> to detonate. Everything in the blast is removed, your own tiles too.",
+    setup:()=>tS([[2,2,0,2,"F"],[2,1,1,1,"S"],[1,2,1,1,"S"],[3,2,0,1,"S"]]),done:a=>a.type==="kamikaze"},
+  {title:"Bank points",text:"Your Runner-2 can reach the far row this turn, so it can run off the board. Tap it, then tap one of the <b>arrows beyond the edge</b> to bank 2 points.",
+    setup:()=>tS([[2,1,0,2,"R"]]),done:a=>a.type==="score"},
 ];
-function startTut(){document.getElementById("setupScreen").style.display="none";document.getElementById("gameScreen").style.display="none";
-  document.getElementById("tutorialScreen").style.display="block";TUT.step=0;renderTutStep();}
-function renderTutStep(){const scr=document.getElementById("tutorialScreen");
-  if(TUT.step>=TS.length){scr.innerHTML='<div class="tut-card"><h2>You\'re ready!</h2><p class="tut-text">First to <b>6 points</b> wins. Otherwise: most points wins, ties go to whoever has more tiles left, and a full tie goes to the second player. Start a game and discover the art of the breakthrough.</p><div class="tut-btns"><button class="tut-btn primary" id="tutDone">Start playing</button></div></div>';
-    document.getElementById("tutDone").onclick=()=>{scr.style.display="none";showSetup();};return;}
+const TUT_TC=5,TUT_TR=5,TUT_S=28,TUT_W=Math.sqrt(3)*TUT_S,TUT_OX=30,TUT_OY=52;
+function tcx(c,r){return TUT_OX+TUT_W/2+c*TUT_W+(((r%2)+2)%2===1?TUT_W/2:0);}
+function tcy(r){return TUT_OY+TUT_S+r*1.5*TUT_S;}
+function startTut(){setFS(false);document.body.classList.remove("ingame");$("setupScreen").style.display="none";$("gameScreen").style.display="none";
+  $("tutorialScreen").style.display="block";TUT.step=0;renderTutStep();}
+function closeTut(){$("tutorialScreen").style.display="none";G=null;showSetup();}
+function renderTutStep(){const scr=$("tutorialScreen");
+  if(TUT.step>=TS.length){
+    scr.innerHTML=`<div class="tut-card"><div class="tut-step">The last thing to know</div><h2>How the game ends</h2>
+      <p class="tut-text">The first player to bank <b>6 points</b> wins straight away.</p>
+      <p class="tut-text">The game also ends when a player has <b>no tiles left</b>, or when <b>neither player can act</b>. Then the player with more points wins. If points are level, more tiles on the board wins. If that is level too, the player who moved second wins.</p>
+      <div class="tut-btns"><button class="tut-btn" id="tutPractice">Practice vs Easy</button><button class="tut-btn primary" id="tutDone">Start playing</button></div></div>`;
+    $("tutDone").onclick=closeTut;
+    $("tutPractice").onclick=()=>{$("tutorialScreen").style.display="none";startGame({mode:"ai",aiDiff:"easy",human:0,first:0});};
+    try{localStorage.setItem("cr_tutDone","1");}catch(e){}
+    return;}
   const step=TS[TUT.step];
-  scr.innerHTML=`<div class="tut-card"><div class="tut-step">Step ${TUT.step+1} of ${TS.length}</div><h2>${step.title}</h2><p class="tut-text">${step.text}</p><svg id="tutBoardSvg"></svg><div id="tutSelInfo" style="font-family:var(--mono);font-size:11px;min-height:24px;margin-bottom:6px"></div><div id="tutActionBar" class="actionbar"></div><div class="tut-btns"><button class="tut-btn" id="tutSkip">Skip tutorial</button></div></div>`;
-  document.getElementById("tutSkip").onclick=()=>{scr.style.display="none";showSetup();};
-  G={state:step.setup(),mode:"hotseat",aiSide:0,aiDiff:"medium",selected:null,aiThinking:false,log:[],history:[],lastAction:null,isTut:true};
+  scr.innerHTML=`<div class="tut-card"><div class="tut-step">Step ${TUT.step+1} of ${TS.length+1}</div><h2>${step.title}</h2><p class="tut-text">${step.text}</p><svg id="tutBoardSvg" role="img" aria-label="Practice board"></svg><div id="tutHint" class="tut-hint"></div><div class="tut-btns"><button class="tut-btn" id="tutBack" ${TUT.step?"":"disabled"}>Back</button><button class="tut-btn" id="tutSkip">Skip tutorial</button></div></div>`;
+  $("tutSkip").onclick=closeTut;
+  $("tutBack").onclick=()=>{if(TUT.step>0){TUT.step--;renderTutStep();}};
+  G={state:step.setup(),mode:"hotseat",aiSide:0,aiDiff:"medium",selected:null,armed:null,aiThinking:false,log:[],history:[],lastAction:null,isTut:true,tape:[]};
   renderTutBoard();}
-function renderTutBoard(){const svg=document.getElementById("tutBoardSvg");if(!svg)return;svg.innerHTML="";
-  const TR=5,TC=5,ts=28,tw=Math.sqrt(3)*ts,tox=30,toy=30;
-  function tcx(c,r){return tox+tw/2+c*tw+(r%2===1?tw/2:0);}function tcy(r){return toy+ts+r*1.5*ts;}
-  svg.setAttribute("viewBox",`0 0 ${Math.round(tox+tw/2+(TC-1)*tw+tw+20)} ${Math.round(tcy(TR-1)+ts+20)}`);
-  const g=svE("g",{});svg.appendChild(g);const s=G.state,st=getComputedStyle(document.documentElement);
-  let hl={move:new Set(),attack:new Set(),combine:new Set()};
-  if(G.selected){for(const a of legal(s)){if(a.from!==G.selected)continue;
-    if(a.type==="move")hl.move.add(a.to);if(a.type==="attack")hl.attack.add(a.to);if(a.type==="combine")hl.combine.add(a.to);}}
-  for(let r=0;r<TR;r++)for(let c=0;c<TC;c++){
-    g.appendChild(svE("polygon",{points:hP(tcx(c,r),tcy(r),ts),fill:"var(--cell)",stroke:"var(--cellstroke)","stroke-width":1.2})).addEventListener("click",()=>tutClk(c,r));}
-  for(const[k,u]of s.b){const[c,r]=P(k);if(c>=TC||r>=TR)continue;const X=tcx(c,r),Y=tcy(r);
-    const fill=st.getPropertyValue(u.o===0?"--A":"--B").trim(),stroke=st.getPropertyValue(u.o===0?"--Adk":"--Bdk").trim();
-    const p=svE("polygon",{points:hP(X,Y,ts*0.78),fill,stroke,"stroke-width":2,class:"hextile"});
+function renderTutBoard(){const svg=$("tutBoardSvg");if(!svg)return;svg.innerHTML="";
+  svg.setAttribute("viewBox",`0 0 ${Math.round(TUT_OX+TUT_W/2+(TUT_TC-1)*TUT_W+TUT_W+20)} ${Math.round(tcy(TUT_TR-1)+TUT_S+20)}`);
+  const g=svE("g",{});svg.appendChild(g);const s=G.state;
+  for(let r=0;r<TUT_TR;r++)for(let c=0;c<TUT_TC;c++)
+    g.appendChild(svE("polygon",{points:hP(tcx(c,r),tcy(r),TUT_S),fill:r===0?"var(--mid)":"var(--cell)",stroke:"var(--cellstroke)","stroke-width":1.2})).addEventListener("click",()=>tutClk(c,r));
+  for(const[k,u]of s.b){const[c,r]=P(k);if(c>=TUT_TC||r>=TUT_TR)continue;const X=tcx(c,r),Y=tcy(r);
+    const fill=cssv(u.o===0?"--A":"--B"),stroke=cssv(u.o===0?"--Adk":"--Bdk");
+    const p=svE("polygon",{points:hP(X,Y,TUT_S*0.78),fill,stroke,"stroke-width":2,class:"hextile"});
     p.addEventListener("click",e=>{e.stopPropagation();tutClk(c,r);});g.appendChild(p);
-    if(u.t==="F")g.appendChild(svE("polygon",{points:hP(X,Y,ts*0.78,30),fill:"none",stroke,"stroke-width":1.5,"pointer-events":"none"}));
+    if(u.t==="F")g.appendChild(svE("polygon",{points:hP(X,Y,TUT_S*0.78,30),fill:"none",stroke,"stroke-width":1.5,"pointer-events":"none"}));
     const lb=svE("text",{x:X,y:Y+4,"text-anchor":"middle","font-family":"var(--mono)","font-size":12,fill:"#fff","font-weight":700,"pointer-events":"none"});lb.textContent=uL(u);g.appendChild(lb);}
-  if(G.selected&&s.b.has(G.selected)){const[sc2,sr]=P(G.selected);if(sc2<TC&&sr<TR)
-    g.appendChild(svE("polygon",{points:hP(tcx(sc2,sr),tcy(sr),ts*0.92),fill:"none",stroke:"#fff","stroke-width":3,"pointer-events":"none"}));}
-  for(const dk of hl.attack){const[c,r]=P(dk);if(c>=TC||r>=TR)continue;
-    g.appendChild(svE("polygon",{points:hP(tcx(c,r),tcy(r),ts*0.92),fill:"rgba(192,57,43,.25)",stroke:"var(--atkGlow)","stroke-width":3,"pointer-events":"none"}));}
-  for(const dk of hl.combine){const[c,r]=P(dk);if(c>=TC||r>=TR)continue;
-    g.appendChild(svE("polygon",{points:hP(tcx(c,r),tcy(r),ts*0.92),fill:"rgba(58,111,176,.2)",stroke:"var(--combGlow)","stroke-width":2.5,"stroke-dasharray":"4 3","pointer-events":"none"}));}
-  for(const dk of hl.move){if(s.b.has(dk))continue;const[c,r]=P(dk);if(c>=TC||r>=TR)continue;
-    const dot=svE("circle",{cx:tcx(c,r),cy:tcy(r),r:7,fill:"var(--moveGlow)",opacity:.85,style:"cursor:pointer"});
-    dot.addEventListener("click",e=>{e.stopPropagation();tutClk(c,r);});g.appendChild(dot);}
-  if(G.selected){const sActs=legal(s).filter(a=>a.from===G.selected&&a.type==="score");
-    if(sActs.length)for(let c=0;c<TC;c++)g.appendChild(svE("circle",{cx:tcx(c,0),cy:tcy(0)-ts*.8,r:4,fill:"var(--moveGlow)",opacity:.7}));}
-  const si=document.getElementById("tutSelInfo"),ab=document.getElementById("tutActionBar");if(si)si.innerHTML="";if(ab)ab.innerHTML="";
-  if(G.selected&&s.b.has(G.selected)){const u=s.b.get(G.selected),tn=u.t==="S"?"Single":u.t==="R"?"Runner":"Fighter";
-    if(si)si.innerHTML=`<b>${tn}-${u.n}</b> · spd ${spd(u)} · str ${str(u)}`;
-    const acts=legal(s).filter(a=>a.from===G.selected);
-    const sc=acts.find(a=>a.type==="score");
-    if(sc&&ab){const b=document.createElement("button");b.className="abtn score-btn";b.textContent=`⬆ Bank ${u.n} points`;b.onclick=()=>tutDo(sc);ab.appendChild(b);}
-    for(const a of acts.filter(a=>a.type==="attack")){if(!ab)continue;const b=document.createElement("button");b.className="abtn atk-btn";b.textContent=`⚔ Attack at ${a.to}`;b.onclick=()=>tutDo(a);ab.appendChild(b);}
-    const kam=acts.find(a=>a.type==="kamikaze");
-    if(kam&&ab){const b=document.createElement("button");b.className="abtn kamikaze";b.textContent="💥 Detonate";b.onclick=()=>tutDo(kam);ab.appendChild(b);}}}
-function tutClk(c,r){const s=G.state,k=K(c,r),u=s.b.get(k);
-  if(G.selected===k){G.selected=null;renderTutBoard();return;}
+  drawOverlays(g,s,tcx,tcy,TUT_S,tutClk,a=>tutDo(a),(c,r,ghost)=>c>=0&&c<TUT_TC&&(ghost?r===-1:(r>=0&&r<TUT_TR)));
+  const h=$("tutHint");if(h)h.textContent=hintText();}
+function tutClk(c,r){const s=G.state,k=K(c,r),u=s.b.get(k);hideTC();
+  if(G.selected===k){const kam=legal(s).find(a=>a.from===k&&a.type==="kamikaze");
+    if(kam){if(G.armed===k){G.armed=null;tutDo(kam);return;}G.armed=k;renderTutBoard();return;}
+    G.selected=null;renderTutBoard();return;}
+  G.armed=null;
   if(G.selected){const acts=legal(s).filter(a=>a.from===G.selected);
     const mv=acts.find(a=>a.type==="move"&&a.to===k);if(mv){tutDo(mv);return;}
     const at=acts.find(a=>a.type==="attack"&&a.to===k);if(at){tutDo(at);return;}
     const cbs=acts.filter(a=>a.type==="combine"&&a.to===k);
     if(cbs.length===1){tutDo(cbs[0]);return;}
-    if(cbs.length>1){const ab=document.getElementById("tutActionBar");if(ab){ab.innerHTML="";
-      const bR=document.createElement("button");bR.className="abtn";bR.textContent="Build Runner";bR.onclick=()=>tutDo(cbs.find(a=>a.ch==="R"));ab.appendChild(bR);
-      const bF=document.createElement("button");bF.className="abtn";bF.textContent="Build Fighter";bF.onclick=()=>tutDo(cbs.find(a=>a.ch==="F"));ab.appendChild(bF);}return;}}
+    if(cbs.length>1){openTC($("tutBoardSvg"),tcx(c,r),tcy(r),false,ch=>tutDo(cbs.find(a=>a.ch===ch)));return;}}
   if(u&&u.o===s.turn){G.selected=k;renderTutBoard();return;}G.selected=null;renderTutBoard();}
-function tutDo(a){G.state=applyA(G.state,a);G.selected=null;
-  if(TS[TUT.step].done(a))setTimeout(()=>{TUT.step++;renderTutStep();},500);else renderTutBoard();}
+function tutDo(a){G.state=applyA(G.state,a);G.state.turn=0;G.selected=null;G.armed=null;hideTC();
+  const isK=a.type==="kamikaze",ok=TS[TUT.step].done(a);
+  if(isK){const[c,r]=P(a.from);vib([80,40,160]);const hh=$("tutHint");if(hh)hh.textContent="Boom! Everything in the blast is gone.";
+    boom($("tutBoardSvg"),tcx(c,r),tcy(r),TUT_S,[[c,r],...nbb(c,r)].filter(([bc,br])=>bc>=0&&bc<TUT_TC&&br>=0&&br<TUT_TR).map(([bc,br])=>[tcx(bc,br),tcy(br)]));}
+  else renderTutBoard();
+  if(ok){setTimeout(()=>{TUT.step++;renderTutStep();},isK?BOOM_MS+200:700);return;}
+  /* not the action this step teaches: say so, then put the pieces back */
+  const h=$("tutHint");if(h){h.innerHTML='<b style="color:var(--A)">That works in a real game, but this step is about something else.</b> The board resets so you can try again.';}
+  setTimeout(()=>{if(!G||!G.isTut)return;G.state=TS[TUT.step].setup();G.selected=null;G.armed=null;renderTutBoard();
+    const h2=$("tutHint");if(h2)h2.innerHTML='<b style="color:var(--A)">Try again:</b> '+hintText();},isK?BOOM_MS+400:1600);}
 
-/* WIRING */
+/* ================= SCREENS & WIRING ================= */
 let sMode="hotseat",sASide="A",sFirst="coin",sDiff="medium";
-function wireOpts(id,cb){document.getElementById(id).addEventListener("click",e=>{const b=e.target.closest(".optbtn");if(!b)return;document.querySelectorAll("#"+id+" .optbtn").forEach(x=>x.classList.remove("active"));b.classList.add("active");cb(b);});}
-wireOpts("modeRow",b=>{sMode=b.dataset.mode;document.getElementById("aiSideGroup").style.display=sMode==="ai"?"block":"none";document.getElementById("diffGroup").style.display=sMode==="ai"?"block":"none";});
+function wireOpts(id,cb){$(id).addEventListener("click",e=>{const b=e.target.closest(".optbtn");if(!b)return;document.querySelectorAll("#"+id+" .optbtn").forEach(x=>x.classList.remove("active"));b.classList.add("active");cb(b);});}
+wireOpts("modeRow",b=>{sMode=b.dataset.mode;$("aiSideGroup").style.display=sMode==="ai"?"block":"none";$("diffGroup").style.display=sMode==="ai"?"block":"none";});
 wireOpts("aiSideRow",b=>{sASide=b.dataset.side;});wireOpts("diffRow",b=>{sDiff=b.dataset.diff;});wireOpts("firstRow",b=>{sFirst=b.dataset.first;});
-document.getElementById("startBtn").addEventListener("click",startGame);
-document.getElementById("newGameTop").addEventListener("click",showSetup);
-document.getElementById("endNewGame").addEventListener("click",()=>{document.getElementById("endModal").classList.remove("show");showSetup();});
-document.getElementById("rulesBtn").addEventListener("click",()=>document.getElementById("rulesModal").classList.add("show"));
-document.getElementById("settingsBtn").addEventListener("click",()=>document.getElementById("settingsModal").classList.add("show"));
-document.getElementById("undoBtn").addEventListener("click",undo);
+$("startBtn").addEventListener("click",()=>{if(loadCur()&&!confirm("Start a new game? Your unfinished game will be lost."))return;startGame();});
+$("resumeBtn").addEventListener("click",resumeGame);
+$("newGameTop").addEventListener("click",showSetup);
+$("endNewGame").addEventListener("click",()=>{$("endModal").classList.remove("show");showSetup();});
+$("endRematch").addEventListener("click",rematch);
+const openRules=()=>$("rulesModal").classList.add("show"),openSettings=()=>$("settingsModal").classList.add("show");
+$("rulesBtn").addEventListener("click",openRules);$("settingsBtn").addEventListener("click",openSettings);
+$("undoBtn").addEventListener("click",undo);
+$("fsBtn").addEventListener("click",toggleFS);$("bbFs").addEventListener("click",toggleFS);
+$("fsExit").addEventListener("click",()=>setFS(false));$("fsUndo").addEventListener("click",undo);
+$("fsRules").addEventListener("click",openRules);
 ["A","B"].forEach(p=>{
-  document.getElementById("tpNew"+p).addEventListener("click",()=>{if(confirm("Start a new game?"))showSetup();});
-  document.getElementById("tpUndo"+p).addEventListener("click",undo);
-  document.getElementById("tpRules"+p).addEventListener("click",()=>document.getElementById("rulesModal").classList.add("show"));
-  document.getElementById("tpSettings"+p).addEventListener("click",()=>document.getElementById("settingsModal").classList.add("show"));
-});
-document.getElementById("tutorialBtn").addEventListener("click",startTut);
-document.getElementById("replayBtn").addEventListener("click",()=>{
-  let tape=G&&G.lastTape?G.lastTape:loadLastGame();
-  if(tape)enterReplay(tape);else alert("No game to review.");});
-document.getElementById("rpStart").addEventListener("click",()=>{if(REPLAY)renderReplayAt(0);});
-document.getElementById("rpPrev").addEventListener("click",()=>{if(REPLAY&&REPLAY.idx>0)renderReplayAt(REPLAY.idx-1);});
-document.getElementById("rpNext").addEventListener("click",()=>{if(REPLAY&&REPLAY.idx<REPLAY.tape.length-1)renderReplayAt(REPLAY.idx+1);});
-document.getElementById("rpEnd").addEventListener("click",()=>{if(REPLAY)renderReplayAt(REPLAY.tape.length-1);});
-document.getElementById("rpSlider").addEventListener("input",e=>{if(REPLAY)renderReplayAt(+e.target.value);});
-document.getElementById("rpExit").addEventListener("click",exitReplay);
-document.getElementById("endReview").addEventListener("click",()=>{const tape=(G&&G.lastTape)||loadLastGame();if(tape)enterReplay(tape);});
+  $("tpNew"+p).addEventListener("click",()=>{if(confirm("Start a new game?"))showSetup();});
+  $("tpUndo"+p).addEventListener("click",undo);
+  $("tpRules"+p).addEventListener("click",openRules);
+  $("tpSettings"+p).addEventListener("click",openSettings);
+  $("tpFs"+p).addEventListener("click",toggleFS);});
+$("tutorialBtn").addEventListener("click",startTut);
+$("replayBtn").addEventListener("click",()=>{const tape=G&&G.lastTape?G.lastTape:loadLastGame();if(tape)enterReplay(tape);else alert("No game to review.");});
+$("rpStart").addEventListener("click",()=>{if(REPLAY)renderReplayAt(0);});
+$("rpPrev").addEventListener("click",()=>{if(REPLAY&&REPLAY.idx>0)renderReplayAt(REPLAY.idx-1);});
+$("rpNext").addEventListener("click",()=>{if(REPLAY&&REPLAY.idx<REPLAY.tape.length-1)renderReplayAt(REPLAY.idx+1);});
+$("rpEnd").addEventListener("click",()=>{if(REPLAY)renderReplayAt(REPLAY.tape.length-1);});
+$("rpSlider").addEventListener("input",e=>{if(REPLAY)renderReplayAt(+e.target.value);});
+$("rpExit").addEventListener("click",exitReplay);
+$("endReview").addEventListener("click",()=>{const tape=(G&&G.lastTape)||loadLastGame();if(tape)enterReplay(tape);});
 /* Export the replayed game as a JSON file (move list + board after every move) for analysis */
-document.getElementById("rpExport").addEventListener("click",()=>{
+$("rpExport").addEventListener("click",()=>{
   if(!REPLAY)return;
   let meta=null;try{meta=JSON.parse(localStorage.getItem("cr_lastmeta")||"null");}catch(e){}
-  const data={game:"Currere",format:1,exported:new Date().toISOString(),meta,
+  const data={game:"Currere",format:1,version:APP_VERSION,exported:new Date().toISOString(),meta,
     moves:REPLAY.tape.map((t,i)=>({i,text:t.text,action:t.action||null,turn:t.state.turn,ply:t.state.ply,
       score:t.state.s,board:Array.from(t.state.b.entries())}))};
   const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
@@ -1169,26 +1337,48 @@ document.getElementById("rpExport").addEventListener("click",()=>{
   const d=new Date(),pad=n=>String(n).padStart(2,"0");
   a.href=url;a.download=`currere-game-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
   document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1500);});
-document.addEventListener("click",e=>{if(!e.target.closest("#typeChooser")&&!e.target.closest(".hextile"))document.getElementById("typeChooser").style.display="none";});
+document.addEventListener("click",e=>{if(!e.target.closest("#typeChooser")&&!e.target.closest(".hextile"))hideTC();});
+document.querySelectorAll(".modal-backdrop").forEach(m=>m.addEventListener("click",e=>{if(e.target===m&&m.id!=="endModal")m.classList.remove("show");}));
 document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT")return;
-  if(e.key==="u")undo();if(e.key==="Escape"){if(REPLAY){exitReplay();return;}if(G){G.selected=null;render();}}
-  if(e.key==="r"){const rm=document.getElementById("rulesModal");rm.classList.contains("show")?rm.classList.remove("show"):rm.classList.add("show");}
+  if(e.key==="u")undo();
+  if(e.key==="f"&&G&&!G.isTut&&!REPLAY&&$("gameScreen").style.display!=="none")toggleFS();
+  if(e.key==="Escape"){document.querySelectorAll(".modal-backdrop.show").forEach(m=>{if(m.id!=="endModal")m.classList.remove("show");});
+    if(document.body.classList.contains("fs")&&!(G&&(G.selected||G.armed))){setFS(false);return;}
+    if(REPLAY){exitReplay();return;}if(G){G.selected=null;G.armed=null;hideTC();if(G.isTut)renderTutBoard();else render();}}
+  if(e.key==="r"){const rm=$("rulesModal");rm.classList.toggle("show");}
   if(e.key==="ArrowLeft"&&REPLAY&&REPLAY.idx>0){renderReplayAt(REPLAY.idx-1);e.preventDefault();}
   if(e.key==="ArrowRight"&&REPLAY&&REPLAY.idx<REPLAY.tape.length-1){renderReplayAt(REPLAY.idx+1);e.preventDefault();}});
 
-function showSetup(){document.getElementById("setupScreen").style.display="block";document.getElementById("gameScreen").style.display="none";
-  document.getElementById("tutorialScreen").style.display="none";document.getElementById("endModal").classList.remove("show");document.getElementById("turnCount").textContent="";
-  document.getElementById("replayPanel").style.display="none";if(REPLAY)exitReplay();
-  document.getElementById("replayBtn").style.display=(G&&G.lastTape)||loadLastGame()?"inline-block":"none";
-  document.body.classList.remove("mode-tablet");}
-function startGame(){let first=sFirst==="coin"?(Math.random()<.5?0:1):sFirst==="A"?0:1;
+function showSetup(){setFS(false);hideTC();
+  if(G&&!G.isTut&&!G.over&&G.mode!=="replay"&&G.history.length)saveCur();
+  $("setupScreen").style.display="block";$("gameScreen").style.display="none";
+  $("tutorialScreen").style.display="none";$("endModal").classList.remove("show");$("turnCount").textContent="";
+  $("replayPanel").style.display="none";if(REPLAY)exitReplay();
+  $("replayBtn").style.display=(G&&G.lastTape)||loadLastGame()?"inline-block":"none";
+  const cur=loadCur();$("resumeBtn").style.display=cur?"block":"none";
+  if(cur){const s=cur.state;$("resumeBtn").textContent=`Resume game · ${cur.mode==="ai"?"vs Computer ("+cur.aiDiff+")":cur.mode==="tablet"?"Tablet":"Hotseat"} · ${s.score[0]}–${s.score[1]}`;}
+  document.body.classList.remove("mode-tablet","ingame");}
+function showGameScreen(){$("setupScreen").style.display="none";$("tutorialScreen").style.display="none";document.body.classList.add("ingame");
+  document.body.classList.toggle("mode-tablet",G.mode==="tablet");
+  $("gameScreen").style.display=G.mode==="tablet"?"flex":"grid";}
+/* opts (optional): {mode, aiDiff, human (0/1), first (0/1)} — otherwise the setup screen choices are used */
+function startGame(opts){opts=opts||{};
+  const mode=opts.mode||sMode,aiDiff=opts.aiDiff||sDiff,human=opts.human!==undefined?opts.human:(sASide==="A"?0:1);
+  const first=opts.first!==undefined?opts.first:(sFirst==="coin"?(Math.random()<.5?0:1):sFirst==="A"?0:1);
   const s=newGS();s.turn=first;s.fp=first;
-  G={state:s,mode:sMode,aiSide:sASide==="A"?0:1,aiDiff:sDiff,selected:null,aiThinking:false,
-    log:[(first===0?"A":"B")+" goes first."],history:[],lastAction:null,isTut:false,
+  G={state:s,mode,aiSide:human,aiDiff,selected:null,armed:null,aiThinking:false,
+    log:[],history:[],lastAction:null,isTut:false,
     tape:[{state:s,action:null,text:"Game start"}],lastTape:null};
-  document.getElementById("setupScreen").style.display="none";document.getElementById("tutorialScreen").style.display="none";
-  document.body.classList.toggle("mode-tablet",sMode==="tablet");
-  document.getElementById("gameScreen").style.display=sMode==="tablet"?"flex":"grid";
-  render();maybeAI();}
+  G.log.push(pName(first)+(mode==="ai"&&first===human?" go first.":" goes first."));
+  clearCur();showGameScreen();saveCur();render();maybeAI();}
+
+/* first visit: offer the tutorial */
+(function(){let seen=false;try{seen=!!localStorage.getItem("cr_welcome");}catch(e){}
+  if(!seen){$("welcomeModal").classList.add("show");
+    const done=()=>{try{localStorage.setItem("cr_welcome","1");}catch(e){}$("welcomeModal").classList.remove("show");};
+    $("welcomeLearn").onclick=()=>{done();startTut();};$("welcomeSkip").onclick=done;}})();
+showSetup();
+if("serviceWorker" in navigator&&location.protocol.startsWith("http"))window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
 </script>
 </body></html>
