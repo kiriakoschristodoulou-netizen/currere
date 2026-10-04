@@ -376,7 +376,7 @@ function tAlive(st,p){let t=0;for(const u of st.b.values())if(u.o===p)t+=u.n;ret
 function legal(st){const me=st.turn,acts=[];
   for(const[k,u]of st.b){if(u.o!==me)continue;const[c,r]=P(k);const sp=spd(u);
     const ds=new Set();let canSc=false;const fr=[[c,r,0]],seen=new Set([k]);
-    while(fr.length){const[cc,cr,d]=fr.pop();
+    while(fr.length){const[cc,cr,d]=fr.shift();
       for(const[nc,nr]of nb(cc,cr)){if((me===0&&nr<0)||(me===1&&nr>ROWS-1)){canSc=true;break;}}
       if(d>=sp)continue;
       for(const[nc,nr]of nb(cc,cr)){if((me===0&&nr<0)||(me===1&&nr>ROWS-1))continue;if(!onB(nc,nr))continue;
@@ -397,11 +397,11 @@ function legalTact(st,run){const me=st.turn,acts=[];
     const dist=me===0?r:ROWS-1-r;
     /* Optionally: runner moves into banking range (the runner's version of a "check") */
     if(run&&u.t==="R"&&dist>sp&&dist<=2*sp){const fr=[[c,r,0]],seen=new Set([k]);
-      while(fr.length){const[cc,cr,d]=fr.pop();if(d>=sp)continue;
+      while(fr.length){const[cc,cr,d]=fr.shift();if(d>=sp)continue;
         for(const[nc,nr]of nbb(cc,cr)){const nk=K(nc,nr);if(st.b.has(nk)||seen.has(nk))continue;seen.add(nk);
           if((me===0?nr:ROWS-1-nr)<=sp)acts.push({type:"move",from:k,to:nk});fr.push([nc,nr,d+1]);}}}
     if(dist<=sp){let canSc=false;const fr=[[c,r,0]],seen=new Set([k]);
-      while(fr.length&&!canSc){const[cc,cr,d]=fr.pop();
+      while(fr.length&&!canSc){const[cc,cr,d]=fr.shift();
         if(me===0?cr===0:cr===ROWS-1){canSc=true;break;}
         if(d>=sp)continue;
         for(const[nc,nr]of nbb(cc,cr)){const nk=K(nc,nr);if(st.b.has(nk)||seen.has(nk))continue;seen.add(nk);fr.push([nc,nr,d+1]);}}
@@ -432,7 +432,7 @@ function adjToEdge(c,r,o){for(const[nc,nr]of nb(c,r)){if((o===0&&nr<0)||(o===1&&
 function computeReachSet(s,o){const reach=new Set(),fr=[];
   for(let r=0;r<ROWS;r++){for(let c=0;c<colsR(r);c++){const k=K(c,r);if(s.b.has(k))continue;
     for(const[nc,nr]of nb(c,r)){if((o===0&&nr<0)||(o===1&&nr>ROWS-1)){reach.add(k);fr.push([c,r]);break;}}}}
-  while(fr.length){const[c,r]=fr.pop();for(const[nc,nr]of nbb(c,r)){const nk=K(nc,nr);
+  while(fr.length){const[c,r]=fr.shift();for(const[nc,nr]of nbb(c,r)){const nk=K(nc,nr);
     if(s.b.has(nk)||reach.has(nk))continue;reach.add(nk);fr.push([nc,nr]);}}return reach;}
 function hasReachFast(reach,c,r,o){for(const[nc,nr]of nb(c,r)){
   if((o===0&&nr<0)||(o===1&&nr>ROWS-1))return true;if(reach.has(K(nc,nr)))return true;}return false;}
@@ -539,7 +539,7 @@ function evalFast(s){
         if(!blocked){if(u.o===0)appA.add(c);else appB.add(c);}
         /* One move from banking range: find a hex within reach that is in range and not next to an enemy that can take it */
         if(EW.near&&dist<=2*u.n){const fr=[[c,r,0]],seen=new Set([k]);let hit=false;
-          while(fr.length&&!hit){const[cc,cr,d]=fr.pop();if(d>=u.n)continue;
+          while(fr.length&&!hit){const[cc,cr,d]=fr.shift();if(d>=u.n)continue;
             for(const[nc,nr]of nbb(cc,cr)){const nk=K(nc,nr);if(s.b.has(nk)||seen.has(nk))continue;seen.add(nk);
               const nd=u.o===0?nr:ROWS-1-nr;
               if(nd<=u.n){let bad=false;for(const[xc,xr]of nbb(nc,nr)){const en=s.b.get(K(xc,xr));
@@ -816,7 +816,7 @@ const MED={ms:400,depth:4,slip:0.15};
 const AIF={easy:aiNov,medium:aiMed,hard:aiVHard};
 
 /* ================= PREFERENCES ================= */
-const APP_VERSION="1.1";
+const APP_VERSION="1.2";
 let PREFS={theme:"light",cb:false,anim:"normal",threats:false,vib:true};
 function loadP(){try{const p=JSON.parse(localStorage.getItem("cr_prefs"));if(p)PREFS={...PREFS,...p};}catch(e){}}
 function saveP(){try{localStorage.setItem("cr_prefs",JSON.stringify(PREFS));}catch(e){}}
