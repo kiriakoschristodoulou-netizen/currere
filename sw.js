@@ -1,7 +1,7 @@
 /* Currere service worker.
    Pages are fetched from the network first, so players always get the latest version
    when they are online; the cached copy is used only when the network is unavailable. */
-const VERSION = 'currere-1.2.0';
+const VERSION = 'currere-1.3.0';
 const ASSETS = ['./', './index.html', './banner.png', './icon-192.png', './icon-512.png', './favicon.svg', './manifest.json'];
 
 self.addEventListener('install', e => {

@@ -1,7 +1,10 @@
 <!DOCTYPE html>
+<!-- Currere. (c) 2026 Kyriakos Christodoulou. All rights reserved. -->
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
+<meta name="author" content="Kyriakos Christodoulou">
+<meta name="copyright" content="© 2026 Kyriakos Christodoulou. All rights reserved.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -227,6 +230,7 @@ body.replaying .replay-bar{order:-1;margin-top:0;}
 @media(min-width:861px){body:not(.fs) #boardSvg{max-height:calc(100vh - 110px);width:auto;max-width:100%;margin:0 auto;}}
 .replay-slider{min-width:0;}
 #gameScreen>*,.side,.replay-bar{min-width:0;}
+.credit{font-family:var(--mono);font-size:10px;color:var(--soft);text-align:center;line-height:1.6;margin:12px 0 0;}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
 </style>
 </head>
@@ -260,6 +264,7 @@ body.replaying .replay-bar{order:-1;margin-top:0;}
 <button class="optbtn active" data-first="coin">Coin flip</button><button class="optbtn" data-first="A">Player A</button><button class="optbtn" data-first="B">Player B</button></div></div>
 <div class="setup-btns"><button id="tutorialBtn">Learn to play</button><button id="startBtn">Start game</button></div>
 <button id="resumeBtn"></button>
+<p class="credit">© 2026 Kyriakos Christodoulou. All rights reserved.</p>
 </div></div>
 
 <div id="tutorialScreen"></div>
@@ -340,6 +345,7 @@ body.replaying .replay-bar{order:-1;margin-top:0;}
 <b>Bank</b> a unit that could reach your far row this turn: it runs off the board and scores 1 point per tile.</p>
 <h3>On the screen</h3><p>Tap a unit, then tap a green dot to move, a red target to attack, a blue-outlined unit to stack, or an arrow beyond the edge to bank. Tap a Fighter twice to see its blast, and a third time to detonate.</p>
 <h3>Game end</h3><p>The game ends at <b>6 points</b>, when a player has <b>no tiles left</b>, or when <b>neither player can act</b>. Then: more points wins; if level, more tiles on the board; if still level, the player who moved second. A player with tiles but no legal action skips the turn.</p>
+<p class="credit" style="text-align:left">© 2026 Kyriakos Christodoulou. All rights reserved.</p>
 </div><div class="modalbtns" style="margin-top:12px"><button class="primary" onclick="document.getElementById('rulesModal').classList.remove('show')">Close</button></div></div></div>
 
 <div class="modal-backdrop" id="settingsModal"><div class="modal" style="text-align:left">
@@ -816,7 +822,7 @@ const MED={ms:400,depth:4,slip:0.15};
 const AIF={easy:aiNov,medium:aiMed,hard:aiVHard};
 
 /* ================= PREFERENCES ================= */
-const APP_VERSION="1.2";
+const APP_VERSION="1.3";
 let PREFS={theme:"light",cb:false,anim:"normal",threats:false,vib:true};
 function loadP(){try{const p=JSON.parse(localStorage.getItem("cr_prefs"));if(p)PREFS={...PREFS,...p};}catch(e){}}
 function saveP(){try{localStorage.setItem("cr_prefs",JSON.stringify(PREFS));}catch(e){}}
@@ -832,7 +838,7 @@ $("setCB").addEventListener("change",e=>{PREFS.cb=e.target.value==="on";applyTh(
 $("setAnim").addEventListener("change",e=>{PREFS.anim=e.target.value;saveP();});
 $("setThreats").addEventListener("change",e=>{PREFS.threats=e.target.value==="on";saveP();if(G&&!G.isTut)render();});
 $("setVib").addEventListener("change",e=>{PREFS.vib=e.target.value==="on";saveP();});
-$("appVersion").textContent="Currere v"+APP_VERSION;
+$("appVersion").innerHTML="Currere v"+APP_VERSION+"<br>© 2026 Kyriakos Christodoulou. All rights reserved.";
 function vib(p){if(PREFS.vib&&navigator.vibrate)try{navigator.vibrate(p);}catch(e){}}
 
 /* ================= STATISTICS ================= */
